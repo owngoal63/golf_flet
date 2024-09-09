@@ -11,7 +11,7 @@ animation_duration = 300
 default_color = '#041955'
 highlight_color = ft.colors.PURPLE
 url = 'http://127.0.0.1:8000/api/getscorecardheaders/'
-url = 'https://kenton.eu.pythonanywhere.com/api/getscorecardheaders/'
+# url = 'https://kenton.eu.pythonanywhere.com/api/getscorecardheaders/'
 
 
 class MenuItem:
@@ -177,7 +177,15 @@ def main(page: ft.Page):
         data.insert(21, ["Total", str(overall_par_total), "", str(overall_gross_total), str(overall_net_total)]) 
 
         current_hole_row = score_data["current_hole_recorded"] if score_data["current_hole_recorded"] <= 9 else score_data["current_hole_recorded"] + 1
-        shots_remaining_to_target = -1 * (score_data['player_details_list'][player_index]['gross_score'] - score_data['player_details_list'][player_index]['target_score'])
+        try:
+            if int(score_data['player_details_list'][player_index]['target_score']) > 0:
+                shots_remaining_to_target = -1 * (score_data['player_details_list'][player_index]['gross_score'] - score_data['player_details_list'][player_index]['target_score'])
+            else:
+                shots_remaining_to_target = ""
+        except:
+            shots_remaining_to_target = ""
+
+
 
         def create_cell(text, is_header=False, row_index=0):
             if isinstance(text, str) and set(text) == {'*'}:  # Check if text consists only of asterisks
@@ -260,7 +268,7 @@ def main(page: ft.Page):
                 spacing=0,
             ),
             padding=2,
-            alignment=ft.alignment.center
+            alignment=ft.alignment.top_left
         )
         scorecard_outer_container.content = scorecard_outer_container_content
         page.update()
@@ -292,9 +300,9 @@ def main(page: ft.Page):
             )
         )
         
-        if page.route == "/item":
+        if page.route == "/scorecard":
             url = f'http://127.0.0.1:8000/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json' # 4 ball
-            url = f'https://kenton.eu.pythonanywhere.com/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json'
+            # url = f'https://kenton.eu.pythonanywhere.com/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json'
             global score_data
             score_data = get_api_data(url)
             # print(score_data["course_name"], score_data["group_name"], score_data["date"], score_data["no_of_players"])
@@ -320,18 +328,71 @@ def main(page: ft.Page):
             
             page.views.append(
                 ft.View(
-                    "/item",
+                    "/scorecard",
                         [
                         ft.AppBar(title=ft.TextButton("Scorecard", style=ft.ButtonStyle(color=ft.colors.BLACK), scale = 1.2,  icon="refresh", icon_color="BLACK", on_click=reload_data), color="BLACK", bgcolor=ft.colors.SURFACE_VARIANT, toolbar_height=40, center_title = True),
                         header,
                         player_select_stack_animation,
-                        scorecard_column
-                        
+                        scorecard_column,
+                        ft.ElevatedButton("More Info", on_click=lambda _: page.go("/add_score"))
                     ],
                     bgcolor=ft.colors.GREEN,
                     padding = 5,
                     scroll=ft.ScrollMode.AUTO
                     
+                )
+            )
+
+        elif page.route == "/add_score":
+
+            def update_data(e):
+                    # This function will be called when the "Update" button is clicked
+                    # You can implement your update logic here, such as processing the entered numbers
+                    for field in number_fields:
+                        print(field.value)  # Example: Print the entered values
+
+            print(score_data)
+            
+            no_of_players = score_data["no_of_players"]  # Adjust this value to set the desired number of players
+
+            # Create a list to store the number input fields
+            number_fields = []
+
+            # Create a container to hold the number input fields
+            container = ft.Container(
+                content=ft.Column(controls=[
+                    ft.Text(f"Enter numbers for {no_of_players} players:")
+                ])
+            )
+
+            # Dynamically create number input fields based on the number of players
+            for i in range(no_of_players):
+                player_label = ft.Text(f"{score_data['player_details_list'][i]['firstname']}:")
+                
+                # number_input = ft.TextField(label="Number", type=ft.TextFieldType.number)
+                number_input = ft.TextField(
+                    label="Enter a number",
+                    keyboard_type=ft.KeyboardType.NUMBER,  # Set keyboard type to number
+                    width=200
+                )
+                number_fields.append(number_input)
+                container.content.controls.extend([player_label, number_input])
+
+                # Create an "Update" button
+                update_button = ft.ElevatedButton(text="Update", on_click=update_data)
+
+                
+
+            #page.add(container)
+            page.views.append(
+                ft.View(
+                    "/add_score",
+                    [
+                        ft.AppBar(title=ft.Text("Additional Information"), bgcolor=ft.colors.SURFACE_VARIANT),
+                        ft.Text(page.client_storage.get("current_item_additional_info")),
+                        container, 
+                        update_button
+                    ]
                 )
             )
         
@@ -356,7 +417,7 @@ def main(page: ft.Page):
 
     def show_scorecard_details(MenuItem):
         page.client_storage.set("current_scorecard_id", MenuItem.scorecard_id)
-        page.go("/item")
+        page.go("/scorecard")
 
     page.on_route_change = route_change
     page.on_view_pop = view_pop
