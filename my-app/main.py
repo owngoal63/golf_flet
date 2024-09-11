@@ -293,7 +293,7 @@ def main(page: ft.Page):
             ft.View(
                 "/",
                 [
-                    ft.AppBar(leading=ft.Icon(ft.icons.GOLF_COURSE), title=ft.Text("Scorecard List"), bgcolor=ft.colors.SURFACE_VARIANT, toolbar_height=40, center_title = True),
+                    ft.AppBar(leading=ft.Icon(ft.icons.GOLF_COURSE), title=ft.Text("Scorecard List"), bgcolor=ft.colors.GREY_100, toolbar_height=40, center_title = True),
                     ft.ListView([create_list_item(menuitem) for menuitem in menuitems], expand=True)
                 ],
                 bgcolor=ft.colors.GREEN
@@ -330,11 +330,11 @@ def main(page: ft.Page):
                 ft.View(
                     "/scorecard",
                         [
-                        ft.AppBar(title=ft.TextButton("Scorecard", style=ft.ButtonStyle(color=ft.colors.BLACK), scale = 1.2,  icon="refresh", icon_color="BLACK", on_click=reload_data), color="BLACK", bgcolor=ft.colors.SURFACE_VARIANT, toolbar_height=40, center_title = True),
+                        ft.AppBar(title=ft.TextButton("Scorecard", style=ft.ButtonStyle(color=ft.colors.BLACK), scale = 1.2,  icon="refresh", icon_color="BLACK", on_click=reload_data), color="BLACK", bgcolor=ft.colors.GREY_100, toolbar_height=40, center_title = True),
                         header,
                         player_select_stack_animation,
                         scorecard_column,
-                        ft.ElevatedButton("More Info", on_click=lambda _: page.go("/add_score"))
+                        ft.ElevatedButton("Enter Scores", on_click=lambda _: page.go("/add_score"))
                     ],
                     bgcolor=ft.colors.GREEN,
                     padding = 5,
@@ -345,41 +345,59 @@ def main(page: ft.Page):
 
         elif page.route == "/add_score":
 
-            def update_data(e):
+            def update_score_data(e):
                     # This function will be called when the "Update" button is clicked
                     # You can implement your update logic here, such as processing the entered numbers
                     for field in number_fields:
                         print(field.value)  # Example: Print the entered values
 
-            print(score_data)
+                    score_data_string = f"{str(number_fields[0].value)}/{str(number_fields[1].value)}/"      ## Player 1&2 scores
+                    score_data_string = score_data_string + f"{str(number_fields[2].value)}/" if score_data["no_of_players"] > 2 else score_data_string + "0/"  # Player 3 score
+                    score_data_string = score_data_string + f"{str(number_fields[3].value)}/" if score_data["no_of_players"] > 3 else score_data_string + "0/"  # Player 4 score
+                    
+                    url = f"http://127.0.0.1:8000/api/updatescore/{str(score_data['score_id'])}/{str(hole_no_to_update)}/{score_data_string}"
+                    # http://127.0.0.1:8000/api/updatescore/18/3/5/4/0/0/
+                    print(url)
+                    response = requests.get(url)
+                    if response.status_code == 200:
+                        response_confirmation = response.json()
+                        print(response_confirmation)
+                        show_scorecard_details(MenuItem("",score_data['score_id']))
+
+
+
+            # print(score_data)
             
             no_of_players = score_data["no_of_players"]  # Adjust this value to set the desired number of players
+            hole_no_to_update = score_data["current_hole_recorded"] + 1
 
             # Create a list to store the number input fields
             number_fields = []
 
             # Create a container to hold the number input fields
-            container = ft.Container(
+            enter_score_container = ft.Container(
+                bgcolor="GREEN",
                 content=ft.Column(controls=[
-                    ft.Text(f"Enter numbers for {no_of_players} players:")
+                    ft.Text(f"Enter Scores for Hole No. {str(hole_no_to_update)}:", color=ft.colors.WHITE, weight="bold")
                 ])
             )
 
             # Dynamically create number input fields based on the number of players
             for i in range(no_of_players):
-                player_label = ft.Text(f"{score_data['player_details_list'][i]['firstname']}:")
+                player_label = ft.Text(f"{score_data['player_details_list'][i]['firstname']}:", color=ft.colors.WHITE, weight="bold")
                 
                 # number_input = ft.TextField(label="Number", type=ft.TextFieldType.number)
                 number_input = ft.TextField(
-                    label="Enter a number",
+                    label="Enter Gross Score",
                     keyboard_type=ft.KeyboardType.NUMBER,  # Set keyboard type to number
-                    width=200
+                    width=200,
+                    color=ft.colors.WHITE
                 )
                 number_fields.append(number_input)
-                container.content.controls.extend([player_label, number_input])
+                enter_score_container.content.controls.extend([player_label, number_input])
 
                 # Create an "Update" button
-                update_button = ft.ElevatedButton(text="Update", on_click=update_data)
+                update_button = ft.ElevatedButton(text="Update Score", on_click=update_score_data)
 
                 
 
@@ -388,11 +406,14 @@ def main(page: ft.Page):
                 ft.View(
                     "/add_score",
                     [
-                        ft.AppBar(title=ft.Text("Additional Information"), bgcolor=ft.colors.SURFACE_VARIANT),
-                        ft.Text(page.client_storage.get("current_item_additional_info")),
-                        container, 
+                        ft.AppBar(title=ft.Text("Player Scores"), color="BLACK", bgcolor=ft.colors.GREY_100, toolbar_height=40, center_title = True),
+                        
+                        enter_score_container, 
                         update_button
-                    ]
+                    ],
+                    bgcolor=ft.colors.GREEN,
+                    padding = 5,
+                    scroll=ft.ScrollMode.AUTO
                 )
             )
         
