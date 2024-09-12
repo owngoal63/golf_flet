@@ -187,7 +187,6 @@ def main(page: ft.Page):
             shots_remaining_to_target = ""
 
 
-
         def create_cell(text, is_header=False, row_index=0):
             if isinstance(text, str) and set(text) == {'*'}:  # Check if text consists only of asterisks
                 num_icons = len(text)
@@ -227,6 +226,14 @@ def main(page: ft.Page):
             spacing=2,
         )
 
+        # Enter Scores button only if round is not complete and player_type is "Admin"
+        if score_data["current_hole_recorded"] <= 19 and score_data['player_details_list'][player_index]['player_type'] == "Admin":
+            button_and_or_score = ft.TextButton(f"{score_data['player_details_list'][player_index]['firstname']} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])}   ",
+                                         style=ft.ButtonStyle(color=ft.colors.WHITE), on_click=lambda _: page.go("/add_score"))
+        else:     # Just show Score Text
+            button_and_or_score = ft.Text(f"{score_data['player_details_list'][player_index]['firstname']} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])}   ",
+                                         color=ft.colors.WHITE, weight='bold', size=12)
+
         # Wrap the table in an outer container
         scorecard_outer_container_content = ft.Container(
             content=ft.Column(
@@ -234,10 +241,9 @@ def main(page: ft.Page):
                     ft.Container(
                         content=ft.Row(
                             [
-                            ft.Text(f"{score_data['player_details_list'][player_index]['firstname']} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])}   ",
-                                         color=ft.colors.WHITE, weight='bold', size=12),
+                            button_and_or_score,
                             ft.Icon(name=ft.icons.EMOJI_EVENTS, color=ft.colors.WHITE, size=14),
-                            ft.Text(f"{str(score_data['player_details_list'][player_index]['target_score'])}/{str(shots_remaining_to_target)}", color=ft.colors.WHITE, size=12)
+                            ft.Text(f"{str(score_data['player_details_list'][player_index]['target_score'])}/{str(shots_remaining_to_target)}", color=ft.colors.WHITE, size=12),
                             ],
                             spacing=5
                         ),
@@ -336,7 +342,6 @@ def main(page: ft.Page):
                         header,
                         player_select_stack_animation,
                         scorecard_column,
-                        ft.ElevatedButton("Enter Scores", on_click=lambda _: page.go("/add_score"))
                     ],
                     bgcolor=ft.colors.GREEN,
                     padding = 5,
@@ -400,10 +405,8 @@ def main(page: ft.Page):
                 number_fields.append(number_input)
                 enter_score_container.content.controls.extend([player_label, number_input])
 
-                # Create an "Update" button
+                # Create an "Update" button 
                 update_button = ft.ElevatedButton(text="Update Score", on_click=update_score_data)
-
-                
 
             #page.add(container)
             page.views.append(
