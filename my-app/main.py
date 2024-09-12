@@ -11,7 +11,7 @@ animation_duration = 300
 default_color = '#041955'
 highlight_color = ft.colors.PURPLE
 url = 'http://127.0.0.1:8000/api/getscorecardheaders/'
-# url = 'https://kenton.eu.pythonanywhere.com/api/getscorecardheaders/'
+url = 'https://kenton.eu.pythonanywhere.com/api/getscorecardheaders/'
 
 
 class MenuItem:
@@ -100,7 +100,7 @@ def main(page: ft.Page):
             content=ft.Column(
                 controls=[
                     ft.Text(
-                        value=f"{score_data['player_details_list'][index]['firstname'][:5]} {str(score_data['player_details_list'][index]['course_hcp'])}",
+                        value=f"{score_data['player_details_list'][index]['firstname'][:5]} {str(score_data['player_details_list'][index]['stableford_total'])}",
                         color="YELLOW",
                         text_align=ft.TextAlign.CENTER,
                         size = 12,
@@ -157,9 +157,10 @@ def main(page: ft.Page):
         course_si_holes_list = score_data['player_details_list'][player_index]['course_si_holes_list']
         player_gross_score_list = score_data['player_details_list'][player_index]['gross_score_holes_list']
         player_net_score_list = score_data['player_details_list'][player_index]['net_score_holes_list']
+        player_stableford_score_list = score_data['player_details_list'][player_index]['stableford_score_holes_list']
 
         # Combine the 5 lists into a list of lists
-        data = [[a, b, c, d, e] for a, b, c, d, e in zip(holes_list, course_par_holes_list, course_si_holes_list, player_gross_score_list,player_net_score_list )]
+        data = [[a, b, c, d, e] for a, b, c, d, e in zip(holes_list, course_par_holes_list, course_si_holes_list, player_gross_score_list,player_net_score_list)]
         # Add table headers to top
         data.insert(0, ["Hole", "Par", "SI", "GRS", "NET"])
         # Add out totals
@@ -266,9 +267,10 @@ def main(page: ft.Page):
                     ),
                 ],
                 spacing=0,
+                 
             ),
             padding=2,
-            alignment=ft.alignment.top_left
+            alignment=ft.alignment.top_left,
         )
         scorecard_outer_container.content = scorecard_outer_container_content
         page.update()
@@ -302,7 +304,7 @@ def main(page: ft.Page):
         
         if page.route == "/scorecard":
             url = f'http://127.0.0.1:8000/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json' # 4 ball
-            # url = f'https://kenton.eu.pythonanywhere.com/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json'
+            url = f'https://kenton.eu.pythonanywhere.com/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json'
             global score_data
             score_data = get_api_data(url)
             # print(score_data["course_name"], score_data["group_name"], score_data["date"], score_data["no_of_players"])
@@ -359,7 +361,7 @@ def main(page: ft.Page):
                     score_data_string = score_data_string + f"{str(number_fields[3].value)}/" if score_data["no_of_players"] > 3 else score_data_string + "0/"  # Player 4 score
                     
                     url = f"http://127.0.0.1:8000/api/updatescore/{str(score_data['score_id'])}/{str(hole_no_to_update)}/{score_data_string}"
-                    # http://127.0.0.1:8000/api/updatescore/18/3/5/4/0/0/
+                    url = f"https://kenton.eu.pythonanywhere.com/api/updatescore/{str(score_data['score_id'])}/{str(hole_no_to_update)}/{score_data_string}"
                     # print(url)
                     response = requests.get(url)
                     if response.status_code == 200:
