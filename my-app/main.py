@@ -349,7 +349,10 @@ def main(page: ft.Page):
                     # This function will be called when the "Update" button is clicked
                     # You can implement your update logic here, such as processing the entered numbers
                     for field in number_fields:
-                        print(field.value)  # Example: Print the entered values
+                        if field.value == "":  # If any field is blank exit function
+                            # print("Blank Field - Exit function")
+                            return
+                        # print(field.value)  # Example: Print the entered values
 
                     score_data_string = f"{str(number_fields[0].value)}/{str(number_fields[1].value)}/"      ## Player 1&2 scores
                     score_data_string = score_data_string + f"{str(number_fields[2].value)}/" if score_data["no_of_players"] > 2 else score_data_string + "0/"  # Player 3 score
@@ -357,16 +360,13 @@ def main(page: ft.Page):
                     
                     url = f"http://127.0.0.1:8000/api/updatescore/{str(score_data['score_id'])}/{str(hole_no_to_update)}/{score_data_string}"
                     # http://127.0.0.1:8000/api/updatescore/18/3/5/4/0/0/
-                    print(url)
+                    # print(url)
                     response = requests.get(url)
                     if response.status_code == 200:
                         response_confirmation = response.json()
                         print(response_confirmation)
                         show_scorecard_details(MenuItem("",score_data['score_id']))
 
-
-
-            # print(score_data)
             
             no_of_players = score_data["no_of_players"]  # Adjust this value to set the desired number of players
             hole_no_to_update = score_data["current_hole_recorded"] + 1
@@ -391,7 +391,9 @@ def main(page: ft.Page):
                     label="Enter Gross Score",
                     keyboard_type=ft.KeyboardType.NUMBER,  # Set keyboard type to number
                     width=200,
-                    color=ft.colors.WHITE
+                    color=ft.colors.WHITE,
+                    input_filter=ft.NumbersOnlyInputFilter(), 
+                    border_color=ft.colors.WHITE
                 )
                 number_fields.append(number_input)
                 enter_score_container.content.controls.extend([player_label, number_input])
