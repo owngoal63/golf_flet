@@ -226,10 +226,16 @@ def main(page: ft.Page):
             spacing=2,
         )
 
-        # Enter Scores button only if round is not complete and player_type is "Admin"
-        if score_data["current_hole_recorded"] <= 19 and score_data['player_details_list'][player_index]['player_type'] == "Admin":
-            button_and_or_score = ft.TextButton(f"{score_data['player_details_list'][player_index]['firstname']} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])}   ",
-                                         style=ft.ButtonStyle(color=ft.colors.WHITE), on_click=lambda _: page.go("/add_score"))
+        # Define Enter Scores button (gesture Text workaround ??) only if round is not complete and player_type is "Admin"
+        if score_data["current_hole_recorded"] <= 17 and score_data['player_details_list'][player_index]['player_type'] == "Admin":
+            button_and_or_score = ft.GestureDetector(
+                content=ft.Text(f"{score_data['player_details_list'][player_index]['firstname']} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])}   ",
+                size=12,
+                color=ft.colors.WHITE,
+                weight=ft.FontWeight.BOLD
+                ),
+            on_tap=lambda _: page.go("/add_score")
+            ) 
         else:     # Just show Score Text
             button_and_or_score = ft.Text(f"{score_data['player_details_list'][player_index]['firstname']} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])}   ",
                                          color=ft.colors.WHITE, weight='bold', size=12)
