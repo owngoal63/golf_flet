@@ -1,10 +1,8 @@
 import flet as ft
 import requests
+import datetime
 
-### Global Variables ###
-# global score_data
-
-# URL Prefix Setting for Production vs Test
+### URL Prefix Setting for Production vs Test
 runmode = "TEST"
 # runmode = "PROD"
 if runmode == "TEST":
@@ -20,7 +18,6 @@ animation_duration = 300
 default_color = '#041955'
 highlight_color = ft.colors.PURPLE
 url = f'{url_prefix}/api/getscorecardheaders/'
-# url = 'https://kenton.eu.pythonanywhere.com/api/getscorecardheaders/'
 
 
 class MenuItem:
@@ -30,7 +27,11 @@ class MenuItem:
 
 menuitems = []
 
-# Matchplay Conversion 
+def convert_date_format(date_str):
+    date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+    return date_obj.strftime("%d-%b-%y")
+
+### Matchplay Conversion Function ###
 def matchplay_convert(number):
     if number == 0: return "AS"
     elif number > 0: return f"{str(number)}up"
@@ -40,14 +41,9 @@ def matchplay_convert(number):
 
 ### Get API Data function ###
 def get_api_data(url: str):
-
-    # sending a GET request to the API
-    response = requests.get(url)
-
+    response = requests.get(url)    # sending a GET request to the API
     if response.status_code == 200: # checking if the request was successful (HTTP status code 200)
-        # parsing the JSON response data
-        url_data = response.json()
-        # date = scorecards_data["date"]
+        url_data = response.json()  # parsing the JSON response data
     # else:
     #     page.add(ft.SafeArea(ft.Text(f"Unable to retrieve URL:{url}")))
 
@@ -55,10 +51,8 @@ def get_api_data(url: str):
 ### End of Get API Data
 
 scorecards_data = get_api_data(url)
-# print(scorecards_data)
 for scorcard_header_data in scorecards_data:
-    # print(scorcard_header_data["date"])
-    menuitems.append(MenuItem(f'{scorcard_header_data["date"]} {scorcard_header_data["course"]} {scorcard_header_data["group"]} ({scorcard_header_data["id"]})', str(scorcard_header_data["id"])))
+    menuitems.append(MenuItem(f'{convert_date_format(scorcard_header_data["date"])} {scorcard_header_data["course"]} {scorcard_header_data["group"]} ({scorcard_header_data["id"]})', str(scorcard_header_data["id"])))
 
 
 def main(page: ft.Page):
@@ -89,12 +83,10 @@ def main(page: ft.Page):
         def build(self) -> ft.Container:
             return ft.Container(
                 margin = ft.margin.only(top=10),
-                # on_click = reload_data,
                 content=ft.Column(
                     controls=[
-                    ft.Text(self.course_name, size=18, weight='bold', color='WHITE'),
-                    # ft.IconButton(ft.icons.REFRESH, on_click=reload_data),
-                    ft.Text(f"{self.group_name} ({self.date})", size=14, weight='bold', color='WHITE')
+                    ft.Text(self.course_name, size=16, weight='bold', color='WHITE'),
+                    ft.Text(f"{self.group_name} ({self.date})", size=12, weight='bold', color='WHITE')
                     ]
                 )
             )
@@ -160,25 +152,13 @@ def main(page: ft.Page):
         # Reset all containers to default color
         for container in player_select_containers:
             container.bgcolor = default_color
-        # Change color of clicked container
-        clicked_container.bgcolor = highlight_color
-        # Rearrange containers
-        player_select_containers.insert(0, player_select_containers.pop(clicked_index))
+        clicked_container.bgcolor = highlight_color     # Change color of clicked container
+        player_select_containers.insert(0, player_select_containers.pop(clicked_index))     # Rearrange containers
         # Animate positions
         for i, container in enumerate(player_select_containers):
             container.left = i * (container_width + 10)
         global container_focus
         container_focus = clicked_container.data
-
-        # print(page.controls)
-
-        # for control in page.controls:
-        #     # if isinstance(control, ft.Container) and control.data.get("custom_id") == "my_container":
-        #         # Find the Text element within the Container
-        #     for child in control.content.controls:
-        #         # if isinstance(child, ft.Text) and child.data.get("custom_id") == "my_text":
-        #         #     child.value = "Updated Text!"
-        #         print(child)
 
         update_data_table(clicked_container.data)
 
@@ -201,9 +181,9 @@ def main(page: ft.Page):
         data = [[a, b, c, d, e] for a, b, c, d, e in zip(holes_list, course_par_holes_list, course_si_holes_list, player_gross_score_list,player_net_score_list)]
         # Add table headers to top
         data.insert(0, ["Hole", "Par", "SI", "GRS", "NET"])
-        # Add out totals
+        # Add out score totals
         data.insert(10, ["Out", str(score_data['player_details_list'][player_index]['out_par_total']), "", str(score_data['player_details_list'][player_index]['out_gross_score']), str(score_data['player_details_list'][player_index]['out_net_score'])])
-        # Add in totals
+        # Add in score totals
         data.insert(20, ["In", str(score_data['player_details_list'][player_index]['in_par_total']), "", str(score_data['player_details_list'][player_index]['in_gross_score']), str(score_data['player_details_list'][player_index]['in_net_score'])])
         # Add Overall Totals
         overall_par_total = score_data['player_details_list'][player_index]['out_par_total'] + score_data['player_details_list'][player_index]['in_par_total']
@@ -213,6 +193,7 @@ def main(page: ft.Page):
         else:
             overall_gross_total = '' 
             overall_net_total = ''
+        # Insert Grand Totals to Bottom row if 18th hole has been recorded
         data.insert(21, ["Total", str(overall_par_total), "", str(overall_gross_total), str(overall_net_total)]) 
 
         current_hole_row = score_data["current_hole_recorded"] if score_data["current_hole_recorded"] <= 9 else score_data["current_hole_recorded"] + 1
@@ -224,7 +205,7 @@ def main(page: ft.Page):
         except:
             shots_remaining_to_target = ""
 
-
+        ## Create Cells on Scorecard Table
         def create_cell(text, is_header=False, row_index=0):
             if isinstance(text, str) and set(text) == {'*'}:  # Check if text consists only of asterisks
                 num_icons = len(text)
@@ -264,10 +245,10 @@ def main(page: ft.Page):
             spacing=2,
         )
 
-        # Define Enter Scores button (gesture Text workaround ??) only if round is not complete and player_type is "Admin"
+        # Define an "Enter Scores" button (gesture Text workaround ??) only if round is not complete and player_type is "Admin"
         if score_data["current_hole_recorded"] <= 17 and score_data['player_details_list'][player_index]['player_type'] == "Admin":
             button_and_or_score = ft.GestureDetector(
-                content=ft.Text(f"{score_data['player_details_list'][player_index]['firstname'][:5]} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])} ({str(score_data['player_details_list'][player_index]['stableford_total'])})",
+                content=ft.Text(f"{score_data['player_details_list'][player_index]['firstname'][:5]} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])} {str(score_data['player_details_list'][player_index]['stableford_total'])}s",
                 size=12,
                 color=ft.colors.WHITE,
                 weight=ft.FontWeight.BOLD
@@ -275,7 +256,7 @@ def main(page: ft.Page):
             on_tap=lambda _: page.go("/add_score")
             ) 
         else:     # Just show Score Text
-            button_and_or_score = ft.Text(f"{score_data['player_details_list'][player_index]['firstname'][:5]} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])} ({str(score_data['player_details_list'][player_index]['stableford_total'])})",
+            button_and_or_score = ft.Text(f"{score_data['player_details_list'][player_index]['firstname'][:5]} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])} {str(score_data['player_details_list'][player_index]['stableford_total'])}s",
                                          color=ft.colors.WHITE, weight='bold', size=12)
 
         # Wrap the table in an outer container
@@ -327,16 +308,16 @@ def main(page: ft.Page):
 
         ### End of Functions for Player Scorecard ###
 
+    ### Reload latest data from API 
     def reload_data(e) -> None:
-        # print("Reload data")
         url = f'{url_prefix}/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json'
-        # url = f'https://kenton.eu.pythonanywhere.com/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json'
         global score_data
         score_data = get_api_data(url)
 
-        # Get app id player currently in focus to pass a parameter to update_data_table
+        # Get app id of player currently in focus to pass a parameter to update_data_table
         app_id_of_player_in_focus = player_select_containers[0].content.controls[0].data.get("app_identifier")
 
+        ## Update values in player select containers with refreshed data
         for player_select_container in player_select_containers:
             for i in range(0,score_data["no_of_players"]):
                 if isinstance(player_select_container.content.controls[0], ft.Text) and player_select_container.content.controls[0].data.get(f"app_identifier") == f"{i}":
@@ -350,9 +331,8 @@ def main(page: ft.Page):
                         value_to_show = f"{str(score_data['player_details_list'][i]['stableford_total'])}s"
                     
                     player_select_container.content.controls[0].value = f"{score_data['player_details_list'][i]['firstname'][:5]} {value_to_show}"
-        print("")
         
-        # global container_focus
+        # refresh the scorecard data table
         update_data_table(int(app_id_of_player_in_focus))
         page.update()
         return
@@ -372,22 +352,15 @@ def main(page: ft.Page):
         
         if page.route == "/scorecard":
             url = f'{url_prefix}/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json' # 4 ball
-            # url = f'https://kenton.eu.pythonanywhere.com/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json'
             global score_data
             score_data = get_api_data(url)
-            # print(score_data["course_name"], score_data["group_name"], score_data["date"], score_data["no_of_players"])
-            header = header_text(score_data["course_name"], score_data["group_name"], score_data["date"])
+            header = header_text(score_data["course_name"], score_data["group_name"], convert_date_format(score_data["date"]))
             global player_select_containers
             player_select_containers = [player_select_container(i, score_data) for i in range(score_data["no_of_players"])]
-            # print("Player Select Containers", player_select_containers)
             
             for container in player_select_containers:
                 container.on_click = container_click
                 
-                # for child in container.controls:
-                #     if isinstance(child, ft.Text):
-                #         print(child.value)
-
             # Set initial container to highlight colour
             player_select_containers[0].bgcolor = highlight_color
             player_select_stack_animation = player_select_stack(player_select_containers, score_data )
@@ -421,30 +394,24 @@ def main(page: ft.Page):
 
         elif page.route == "/add_score":
 
+            ### Function to Update the match score
             def update_score_data(e):
-                    # This function will be called when the "Update" button is clicked
-                    # You can implement your update logic here, such as processing the entered numbers
-                    for field in number_fields:
-                        if field.value == "":  # If any field is blank exit function
-                            # print("Blank Field - Exit function")
-                            return
-                        # print(field.value)  # Example: Print the entered values
+                for field in number_fields:
+                    if field.value == "":  # If any field is blank exit function
+                        return
 
-                    score_data_string = f"{str(number_fields[0].value)}/{str(number_fields[1].value)}/"      ## Player 1&2 scores
-                    score_data_string = score_data_string + f"{str(number_fields[2].value)}/" if score_data["no_of_players"] > 2 else score_data_string + "0/"  # Player 3 score
-                    score_data_string = score_data_string + f"{str(number_fields[3].value)}/" if score_data["no_of_players"] > 3 else score_data_string + "0/"  # Player 4 score
-                    
-                    url = f"{url_prefix}/api/updatescore/{str(score_data['score_id'])}/{str(hole_no_to_update)}/{score_data_string}"
-                    # url = f"https://kenton.eu.pythonanywhere.com/api/updatescore/{str(score_data['score_id'])}/{str(hole_no_to_update)}/{score_data_string}"
-                    # print(url)
-                    response = requests.get(url)
-                    if response.status_code == 200:
-                        response_confirmation = response.json()
-                        # print(response_confirmation)
-                        show_scorecard_details(MenuItem("",score_data['score_id']))
+                score_data_string = f"{str(number_fields[0].value)}/{str(number_fields[1].value)}/"      ## Player 1&2 scores
+                score_data_string = score_data_string + f"{str(number_fields[2].value)}/" if score_data["no_of_players"] > 2 else score_data_string + "0/"  # Player 3 score
+                score_data_string = score_data_string + f"{str(number_fields[3].value)}/" if score_data["no_of_players"] > 3 else score_data_string + "0/"  # Player 4 score
+                
+                url = f"{url_prefix}/api/updatescore/{str(score_data['score_id'])}/{str(hole_no_to_update)}/{score_data_string}"
+                response = requests.get(url)
+                if response.status_code == 200:
+                    response_confirmation = response.json()
+                    show_scorecard_details(MenuItem("",score_data['score_id']))
 
             
-            no_of_players = score_data["no_of_players"]  # Adjust this value to set the desired number of players
+            no_of_players = score_data["no_of_players"]
             hole_no_to_update = score_data["current_hole_recorded"] + 1
 
             # Create a list to store the number input fields
@@ -462,7 +429,6 @@ def main(page: ft.Page):
             for i in range(no_of_players):
                 player_label = ft.Text(f"{score_data['player_details_list'][i]['firstname']}:", color=ft.colors.WHITE, weight="bold")
                 
-                # number_input = ft.TextField(label="Number", type=ft.TextFieldType.number)
                 number_input = ft.TextField(
                     label="Enter Gross Score",
                     keyboard_type=ft.KeyboardType.NUMBER,  # Set keyboard type to number
@@ -474,7 +440,7 @@ def main(page: ft.Page):
                 number_fields.append(number_input)
                 enter_score_container.content.controls.extend([player_label, number_input])
 
-                # Create an "Update" button 
+                # "Update Score" button 
                 update_button = ft.ElevatedButton(text="Update Score", on_click=update_score_data)
 
             #page.add(container)
@@ -505,7 +471,6 @@ def main(page: ft.Page):
         return ft.Container(
             content=ft.Column([
                 ft.Text(MenuItem.display, size=14, weight="bold", color=ft.colors.WHITE), 
-                # ft.Text(item.description, size=16)  # Set custom text size for item description
             ]),
             on_click=lambda _: show_scorecard_details(MenuItem),
             padding=15,
