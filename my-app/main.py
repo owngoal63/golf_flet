@@ -4,14 +4,23 @@ import requests
 ### Global Variables ###
 # global score_data
 
+# URL Prefix Setting for Production vs Test
+runmode = "TEST"
+# runmode = "PROD"
+if runmode == "TEST":
+    url_prefix = "http://127.0.0.1:8000"
+else:
+    url_prefix = "https://kenton.eu.pythonanywhere.com"
+
+
 ### App Variables ###
 container_width = 90
 container_height = 70
 animation_duration = 300
 default_color = '#041955'
 highlight_color = ft.colors.PURPLE
-url = 'http://127.0.0.1:8000/api/getscorecardheaders/'
-url = 'https://kenton.eu.pythonanywhere.com/api/getscorecardheaders/'
+url = f'{url_prefix}/api/getscorecardheaders/'
+# url = 'https://kenton.eu.pythonanywhere.com/api/getscorecardheaders/'
 
 
 class MenuItem:
@@ -20,6 +29,14 @@ class MenuItem:
         self.scorecard_id = scorecard_id
 
 menuitems = []
+
+# Matchplay Conversion 
+def matchplay_convert(number):
+    if number == 0: return "AS"
+    elif number > 0: return f"{str(number)}up"
+    elif number < 0: return f"{str(number*-1)}dn"
+    else: return ""
+
 
 ### Get API Data function ###
 def get_api_data(url: str):
@@ -86,6 +103,15 @@ def main(page: ft.Page):
 
     ### Functions for Player Select Controls ####
     def player_select_container(index, score_data):
+
+        # Determine whether to display Course Handicap, Matchplay total or Stableford total in player_select_containers
+        if score_data['current_hole_recorded'] == 0:    # Show Course Handicap value
+            value_to_show = str(score_data['player_details_list'][index]['course_hcp'])
+        elif score_data["no_of_players"] == 2:          # Show Matchplay score
+            value_to_show = matchplay_convert(score_data[f'matchplay_status_player{str(index+1)}'])
+        else:                                           # Show Stableford points
+            value_to_show = f"{str(score_data['player_details_list'][index]['stableford_total'])}s"
+
         return ft.Container(
             border_radius=10,
             width=container_width,
@@ -100,12 +126,13 @@ def main(page: ft.Page):
             content=ft.Column(
                 controls=[
                     ft.Text(
-                        value=f"{score_data['player_details_list'][index]['firstname'][:5]} {str(score_data['player_details_list'][index]['stableford_total'])}",
+                        value=f"{score_data['player_details_list'][index]['firstname'][:5]} {value_to_show}",
                         color="YELLOW",
                         text_align=ft.TextAlign.CENTER,
                         size = 12,
                         weight='bold',
                         width=container_width - 15,  # Subtract padding
+                        data={f"app_identifier": f"{index}"}
                     ),
                     ft.Icon(
                         ft.icons.PERSON,
@@ -143,7 +170,18 @@ def main(page: ft.Page):
         global container_focus
         container_focus = clicked_container.data
 
+        # print(page.controls)
+
+        # for control in page.controls:
+        #     # if isinstance(control, ft.Container) and control.data.get("custom_id") == "my_container":
+        #         # Find the Text element within the Container
+        #     for child in control.content.controls:
+        #         # if isinstance(child, ft.Text) and child.data.get("custom_id") == "my_text":
+        #         #     child.value = "Updated Text!"
+        #         print(child)
+
         update_data_table(clicked_container.data)
+
         page.update()
     
     ### End of Functions for Player Select Controls ###
@@ -229,7 +267,7 @@ def main(page: ft.Page):
         # Define Enter Scores button (gesture Text workaround ??) only if round is not complete and player_type is "Admin"
         if score_data["current_hole_recorded"] <= 17 and score_data['player_details_list'][player_index]['player_type'] == "Admin":
             button_and_or_score = ft.GestureDetector(
-                content=ft.Text(f"{score_data['player_details_list'][player_index]['firstname']} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])}   ",
+                content=ft.Text(f"{score_data['player_details_list'][player_index]['firstname'][:5]} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])} ({str(score_data['player_details_list'][player_index]['stableford_total'])})",
                 size=12,
                 color=ft.colors.WHITE,
                 weight=ft.FontWeight.BOLD
@@ -237,7 +275,7 @@ def main(page: ft.Page):
             on_tap=lambda _: page.go("/add_score")
             ) 
         else:     # Just show Score Text
-            button_and_or_score = ft.Text(f"{score_data['player_details_list'][player_index]['firstname']} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])}   ",
+            button_and_or_score = ft.Text(f"{score_data['player_details_list'][player_index]['firstname'][:5]} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])} ({str(score_data['player_details_list'][player_index]['stableford_total'])})",
                                          color=ft.colors.WHITE, weight='bold', size=12)
 
         # Wrap the table in an outer container
@@ -256,7 +294,7 @@ def main(page: ft.Page):
                         padding=10,
                         bgcolor=ft.colors.PURPLE,
                         border_radius=ft.border_radius.only(top_left=10, top_right=10),
-                        width=210,
+                        width=250,
                         height=38
                     ),
                     ft.Container(
@@ -291,13 +329,31 @@ def main(page: ft.Page):
 
     def reload_data(e) -> None:
         # print("Reload data")
-        url = 'http://127.0.0.1:8000/api/getscoredetails/13/?format=json'
-        url = f'https://kenton.eu.pythonanywhere.com/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json'
+        url = f'{url_prefix}/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json'
+        # url = f'https://kenton.eu.pythonanywhere.com/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json'
         global score_data
         score_data = get_api_data(url)
-        update_data_table(0)
-        global container_focus
-        update_data_table(int(container_focus))
+
+        # Get app id player currently in focus to pass a parameter to update_data_table
+        app_id_of_player_in_focus = player_select_containers[0].content.controls[0].data.get("app_identifier")
+
+        for player_select_container in player_select_containers:
+            for i in range(0,score_data["no_of_players"]):
+                if isinstance(player_select_container.content.controls[0], ft.Text) and player_select_container.content.controls[0].data.get(f"app_identifier") == f"{i}":
+
+                    # Determine whether to display Course Handicap, Matchplay total or Stableford total in player_select_containers
+                    if score_data['current_hole_recorded'] == 0:            # Show Course Handicap value
+                        value_to_show = str(score_data['player_details_list'][i]['course_hcp'])
+                    elif score_data["no_of_players"] == 2:                  # Show Matchplay score
+                        value_to_show = matchplay_convert(score_data[f'matchplay_status_player{str(i+1)}'])
+                    else:                                                   # Show Stableford points
+                        value_to_show = f"{str(score_data['player_details_list'][i]['stableford_total'])}s"
+                    
+                    player_select_container.content.controls[0].value = f"{score_data['player_details_list'][i]['firstname'][:5]} {value_to_show}"
+        print("")
+        
+        # global container_focus
+        update_data_table(int(app_id_of_player_in_focus))
         page.update()
         return
 
@@ -315,16 +371,23 @@ def main(page: ft.Page):
         )
         
         if page.route == "/scorecard":
-            url = f'http://127.0.0.1:8000/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json' # 4 ball
-            url = f'https://kenton.eu.pythonanywhere.com/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json'
+            url = f'{url_prefix}/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json' # 4 ball
+            # url = f'https://kenton.eu.pythonanywhere.com/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json'
             global score_data
             score_data = get_api_data(url)
             # print(score_data["course_name"], score_data["group_name"], score_data["date"], score_data["no_of_players"])
             header = header_text(score_data["course_name"], score_data["group_name"], score_data["date"])
             global player_select_containers
             player_select_containers = [player_select_container(i, score_data) for i in range(score_data["no_of_players"])]
+            # print("Player Select Containers", player_select_containers)
+            
             for container in player_select_containers:
                 container.on_click = container_click
+                
+                # for child in container.controls:
+                #     if isinstance(child, ft.Text):
+                #         print(child.value)
+
             # Set initial container to highlight colour
             player_select_containers[0].bgcolor = highlight_color
             player_select_stack_animation = player_select_stack(player_select_containers, score_data )
@@ -371,13 +434,13 @@ def main(page: ft.Page):
                     score_data_string = score_data_string + f"{str(number_fields[2].value)}/" if score_data["no_of_players"] > 2 else score_data_string + "0/"  # Player 3 score
                     score_data_string = score_data_string + f"{str(number_fields[3].value)}/" if score_data["no_of_players"] > 3 else score_data_string + "0/"  # Player 4 score
                     
-                    url = f"http://127.0.0.1:8000/api/updatescore/{str(score_data['score_id'])}/{str(hole_no_to_update)}/{score_data_string}"
-                    url = f"https://kenton.eu.pythonanywhere.com/api/updatescore/{str(score_data['score_id'])}/{str(hole_no_to_update)}/{score_data_string}"
+                    url = f"{url_prefix}/api/updatescore/{str(score_data['score_id'])}/{str(hole_no_to_update)}/{score_data_string}"
+                    # url = f"https://kenton.eu.pythonanywhere.com/api/updatescore/{str(score_data['score_id'])}/{str(hole_no_to_update)}/{score_data_string}"
                     # print(url)
                     response = requests.get(url)
                     if response.status_code == 200:
                         response_confirmation = response.json()
-                        print(response_confirmation)
+                        # print(response_confirmation)
                         show_scorecard_details(MenuItem("",score_data['score_id']))
 
             
@@ -431,6 +494,7 @@ def main(page: ft.Page):
             )
         
         page.update()
+        
 
     def view_pop(view):
         page.views.pop()
