@@ -1,6 +1,7 @@
 import flet as ft
 import requests
 import datetime
+import os
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
@@ -26,6 +27,9 @@ class MenuItem:
         self.scorecard_id = scorecard_id
 
 menuitems = []
+
+def quit_app(_):
+    os._exit(0)
 
 def convert_date_format(date_str):
     date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d")
@@ -343,7 +347,16 @@ def main(page: ft.Page):
             ft.View(
                 "/",
                 [
-                    ft.AppBar(leading=ft.Icon(ft.icons.GOLF_COURSE), title=ft.Text("Scorecard List"), bgcolor=ft.colors.GREY_100, toolbar_height=40, center_title = True),
+                ft.AppBar(
+                    leading=ft.Icon(ft.icons.GOLF_COURSE),
+                    title=ft.Text("Scorecard List"),
+                    bgcolor=ft.colors.GREY_100,
+                    toolbar_height=40,
+                    center_title=True,
+                    actions=[
+                        ft.IconButton(ft.icons.ADD, on_click=lambda _: page.go("/add_scorecard"))
+                    ]
+        ),
                     ft.ListView([create_list_item(menuitem) for menuitem in menuitems], expand=True)
                 ],
                 bgcolor=ft.colors.GREEN
@@ -443,7 +456,6 @@ def main(page: ft.Page):
                 # "Update Score" button 
                 update_button = ft.ElevatedButton(text="Update Score", on_click=update_score_data)
 
-            #page.add(container)
             page.views.append(
                 ft.View(
                     "/add_score",
@@ -452,6 +464,21 @@ def main(page: ft.Page):
                         
                         enter_score_container, 
                         update_button
+                    ],
+                    bgcolor=ft.colors.GREEN,
+                    padding = 5,
+                    scroll=ft.ScrollMode.AUTO
+                )
+            )
+
+        elif page.route == "/add_scorecard":
+            print("Add Scorecard")
+
+            page.views.append(
+                ft.View(
+                    "/add_scorecard",
+                    [
+                        ft.AppBar(title=ft.Text("Add Scoercard"), color="BLACK", bgcolor=ft.colors.GREY_100, toolbar_height=40, center_title = True),
                     ],
                     bgcolor=ft.colors.GREEN,
                     padding = 5,
