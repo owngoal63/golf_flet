@@ -5,7 +5,7 @@ import os
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-# runmode = "PROD"
+runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -18,15 +18,15 @@ container_height = 70
 animation_duration = 300
 default_color = '#041955'
 highlight_color = ft.colors.PURPLE
-url = f'{url_prefix}/api/getscorecardheaders/'
+# url = f'{url_prefix}/api/getscorecardheaders/'
 
 
 class MenuItem:
-    def __init__(self, display, scorecard_id):
+    def __init__(self, display, menuitem_id):
         self.display = display
-        self.scorecard_id = scorecard_id
+        self.menuitem_id = menuitem_id
 
-menuitems = []
+# menuitems = []
 
 def quit_app(_):
     os._exit(0)
@@ -54,9 +54,9 @@ def get_api_data(url: str):
     return url_data
 ### End of Get API Data
 
-scorecards_data = get_api_data(url)
-for scorcard_header_data in scorecards_data:
-    menuitems.append(MenuItem(f'{convert_date_format(scorcard_header_data["date"])} {scorcard_header_data["course"]} {scorcard_header_data["group"]} ({scorcard_header_data["id"]})', str(scorcard_header_data["id"])))
+# scorecards_data = get_api_data(url)
+# for scorcard_header_data in scorecards_data:
+#     menuitems.append(MenuItem(f'{convert_date_format(scorcard_header_data["date"])} {scorcard_header_data["course"]} {scorcard_header_data["group"]} ({scorcard_header_data["id"]})', str(scorcard_header_data["id"])))
 
 
 def main(page: ft.Page):
@@ -343,6 +343,11 @@ def main(page: ft.Page):
 
     def route_change(route):
         page.views.clear()
+        menuitems = []
+        url = f'{url_prefix}/api/getscorecardheaders/'
+        scorecards_data = get_api_data(url)
+        for scorcard_header_data in scorecards_data:
+            menuitems.append(MenuItem(f'{convert_date_format(scorcard_header_data["date"])} {scorcard_header_data["course"]} {scorcard_header_data["group"]} ({scorcard_header_data["id"]})', str(scorcard_header_data["id"])))
         page.views.append(
             ft.View(
                 "/",
@@ -357,7 +362,7 @@ def main(page: ft.Page):
                         ft.IconButton(ft.icons.ADD, on_click=lambda _: page.go("/add_scorecard"))
                     ]
         ),
-                    ft.ListView([create_list_item(menuitem) for menuitem in menuitems], expand=True)
+                    ft.ListView([create_list_item(menuitem, "Scorecard") for menuitem in menuitems], expand=True)
                 ],
                 bgcolor=ft.colors.GREEN
             )
@@ -472,13 +477,18 @@ def main(page: ft.Page):
             )
 
         elif page.route == "/add_scorecard":
-            print("Add Scorecard")
+            group_menuitems = []
+            url = f'{url_prefix}/api/getgroups/'
+            groups = get_api_data(url)
+            for group in groups:
+                group_menuitems.append(MenuItem(f'{group["group_name"]} ({group["id"]})', str(group["id"])))
 
             page.views.append(
                 ft.View(
                     "/add_scorecard",
                     [
-                        ft.AppBar(title=ft.Text("Add Scoercard"), color="BLACK", bgcolor=ft.colors.GREY_100, toolbar_height=40, center_title = True),
+                        ft.AppBar(title=ft.Text("Select Group for Scorecard"), color="BLACK", bgcolor=ft.colors.GREY_100, toolbar_height=40, center_title = True),
+                        ft.ListView([create_list_item(group_menuitem, "Golfgroup") for group_menuitem in group_menuitems], expand=True)
                     ],
                     bgcolor=ft.colors.GREEN,
                     padding = 5,
@@ -494,20 +504,36 @@ def main(page: ft.Page):
         top_view = page.views[-1]
         page.go(top_view.route)
 
-    def create_list_item(MenuItem):
-        return ft.Container(
-            content=ft.Column([
-                ft.Text(MenuItem.display, size=14, weight="bold", color=ft.colors.WHITE), 
-            ]),
-            on_click=lambda _: show_scorecard_details(MenuItem),
-            padding=15,
-            bgcolor=ft.colors.GREEN,
-            border_radius=5
-        )
+    def create_list_item(MenuItem, ItemType):
+        if ItemType == "Scorecard":
+            return ft.Container(
+                content=ft.Column([
+                    ft.Text(MenuItem.display, size=14, weight="bold", color=ft.colors.WHITE), 
+                ]),
+                on_click=lambda _: show_scorecard_details(MenuItem),
+                padding=15,
+                bgcolor=ft.colors.GREEN,
+                border_radius=5
+            )
+        else:   # Item Type is Golfgroup
+            return ft.Container(
+                content=ft.Column([
+                    ft.Text(MenuItem.display, size=14, weight="bold", color=ft.colors.WHITE), 
+                ]),
+                on_click=lambda _: scorecard_setup(MenuItem),
+                padding=15,
+                bgcolor=ft.colors.GREEN,
+                border_radius=5
+            )
 
     def show_scorecard_details(MenuItem):
-        page.client_storage.set("current_scorecard_id", MenuItem.scorecard_id)
+        page.client_storage.set("current_scorecard_id", MenuItem.menuitem_id)
         page.go("/scorecard")
+
+    def scorecard_setup(MenuItem):
+        page.client_storage.set("current_scorecard_id", MenuItem.menuitem_id)
+        page.go("/scorecard")
+
 
     page.on_route_change = route_change
     page.on_view_pop = view_pop
