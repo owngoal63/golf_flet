@@ -5,7 +5,7 @@ import os
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-runmode = "PROD"
+# runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -495,6 +495,115 @@ def main(page: ft.Page):
                     scroll=ft.ScrollMode.AUTO
                 )
             )
+
+        elif page.route == "/initialise_scorecard":
+
+            selected_id = 0
+
+            def create_scorecard(e):
+                # print("Create Scorecard")
+                # http://127.0.0.1:8000/api/createscorecard/8/3/3/6/26/7/27/8/28/0/0/
+
+                player_details_string = ""
+
+                for i, field in enumerate(number_fields):
+                    if field.value == "":  # If any field is blank exit function
+                        return
+                    # print(f"player {i} hcp", number_fields[i].value, buddys[i]['firstname'], buddys[i]['user_id'])
+                    player_details_string = player_details_string + f"{str(buddys[i]['user_id'])}/{str(number_fields[i].value)}/"
+
+                if no_of_players == 2: player_details_string = player_details_string + "0/0/0/0/"    # Add 2 blank player details
+                if no_of_players == 3: player_details_string = player_details_string + "0/0/"       # Add 1 blank player details
+
+                if not courses_dropdown.value:  # If dropdown field is blank exit function
+                    return
+                
+                # print("Course id", courses_dropdown.value)
+                # print("Group id", page.client_storage.get("group_id"))
+                url = f"{url_prefix}/api/createscorecard/{str(page.client_storage.get('group_id'))}/{str(courses_dropdown.value)}/{str(no_of_players)}/{player_details_string}"
+                # print(url)
+                response = requests.get(url)
+                # if response.status_code == 200:
+                response_confirmation = response.json()
+                # print(response_confirmation)
+                # print(response_confirmation["id"])
+                # return
+                show_scorecard_details(MenuItem("",int(response_confirmation["id"])))   # Goto Show Scorecard Page with newely created id
+
+
+            group_menuitems = []
+            # Get buddys for selected group
+            url = f'{url_prefix}/api/getbuddys/{page.client_storage.get("group_id")}/'
+            buddys = get_api_data(url)
+            # for buddy in buddys:
+            #     # group_menuitems.append(MenuItem(f'{group["group_name"]} ({group["id"]})', str(group["id"])))
+            #     print(buddy)
+            no_of_players =  len(buddys)
+
+            # Get Courses from API
+            url = f'{url_prefix}/api/courses/'
+            courses = get_api_data(url)
+            options = []
+            for course in courses:
+                # print(course["name"])
+                options.append(ft.dropdown.Option(text=course["name"], key=course["id"]))
+
+            def dropdown_changed(e):
+                selected_id = courses_dropdown.value
+                return
+
+            # Create a dropdown field using the options
+            courses_dropdown = ft.Dropdown(
+                label="Select Course",
+                options=options,
+                border_color=ft.colors.WHITE,
+                padding=5,
+                on_change=dropdown_changed
+            )
+
+            # Create a list to store the number input fields
+            number_fields = []
+
+            # Create a container to hold the number input fields
+            enter_handicap_container = ft.Container(
+                bgcolor="GREEN",
+                padding=10,
+                content=ft.Column(controls=[
+                    ft.Text(f"Course Handicaps for players:", color=ft.colors.WHITE, weight="bold")
+                ])
+            )
+
+            for i in range(no_of_players):
+                player_label = ft.Text(f"{buddys[i]['firstname']}:", color=ft.colors.WHITE, weight="bold")
+                
+                number_input = ft.TextField(
+                    label="Enter Course Handicap",
+                    keyboard_type=ft.KeyboardType.NUMBER,  # Set keyboard type to number
+                    width=200,
+                    color=ft.colors.WHITE,
+                    input_filter=ft.NumbersOnlyInputFilter(), 
+                    border_color=ft.colors.WHITE
+                )
+                number_fields.append(number_input)
+                enter_handicap_container.content.controls.extend([player_label, number_input])
+
+                # "Create Scorecard" button 
+                create_button = ft.ElevatedButton(text="Create Scorecard", on_click=create_scorecard)
+
+            page.views.append(
+                ft.View(
+                    "/initialise_scorecard",
+                    [
+                        ft.AppBar(title=ft.Text("Enter Course & Player Details"), color="BLACK", bgcolor=ft.colors.GREY_100, toolbar_height=40, center_title = True),
+                        courses_dropdown,
+                        enter_handicap_container,
+                        create_button
+                    ],
+                    bgcolor=ft.colors.GREEN,
+                    padding = 5,
+                    scroll=ft.ScrollMode.AUTO
+                )
+            )
         
         page.update()
         
@@ -520,7 +629,7 @@ def main(page: ft.Page):
                 content=ft.Column([
                     ft.Text(MenuItem.display, size=14, weight="bold", color=ft.colors.WHITE), 
                 ]),
-                on_click=lambda _: scorecard_setup(MenuItem),
+                on_click=lambda _: add_scorecard(MenuItem),
                 padding=15,
                 bgcolor=ft.colors.GREEN,
                 border_radius=5
@@ -530,9 +639,9 @@ def main(page: ft.Page):
         page.client_storage.set("current_scorecard_id", MenuItem.menuitem_id)
         page.go("/scorecard")
 
-    def scorecard_setup(MenuItem):
-        page.client_storage.set("current_scorecard_id", MenuItem.menuitem_id)
-        page.go("/scorecard")
+    def add_scorecard(MenuItem):
+        page.client_storage.set("group_id", MenuItem.menuitem_id)
+        page.go("/initialise_scorecard")
 
 
     page.on_route_change = route_change
