@@ -17,9 +17,12 @@ container_width = 90
 container_height = 70
 animation_duration = 300
 default_color = '#041955'
+# default_bgcolor = ft.colors.GREEN_300
+default_bgcolor = "#E9E9E9"
 highlight_color = ft.colors.PURPLE
+primary_text_color = ft.colors.TEAL_900
+app_bar_color = ft.colors.GREEN_500
 # url = f'{url_prefix}/api/getscorecardheaders/'
-
 
 class MenuItem:
     def __init__(self, display, menuitem_id):
@@ -54,11 +57,6 @@ def get_api_data(url: str):
     return url_data
 ### End of Get API Data
 
-# scorecards_data = get_api_data(url)
-# for scorcard_header_data in scorecards_data:
-#     menuitems.append(MenuItem(f'{convert_date_format(scorcard_header_data["date"])} {scorcard_header_data["course"]} {scorcard_header_data["group"]} ({scorcard_header_data["id"]})', str(scorcard_header_data["id"])))
-
-
 def main(page: ft.Page):
 
     global score_data
@@ -89,8 +87,8 @@ def main(page: ft.Page):
                 margin = ft.margin.only(top=10),
                 content=ft.Column(
                     controls=[
-                    ft.Text(self.course_name, size=16, weight='bold', color='WHITE'),
-                    ft.Text(f"{self.group_name} ({self.date})", size=12, weight='bold', color='WHITE')
+                    ft.Text(self.course_name, size=16, weight='bold', color=primary_text_color, font_family="San Francisco"),
+                    ft.Text(f"{self.group_name} ({self.date})", size=14, weight='bold', color=primary_text_color, font_family="San Francisco")
                     ]
                 )
             )
@@ -255,7 +253,7 @@ def main(page: ft.Page):
                 content=ft.Text(f"{score_data['player_details_list'][player_index]['firstname'][:5]} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])} {str(score_data['player_details_list'][player_index]['stableford_total'])}s",
                 size=12,
                 color=ft.colors.WHITE,
-                weight=ft.FontWeight.BOLD
+                weight=ft.FontWeight.BOLD,
                 ),
             on_tap=lambda _: page.go("/add_score")
             ) 
@@ -347,24 +345,24 @@ def main(page: ft.Page):
         url = f'{url_prefix}/api/getscorecardheaders/'
         scorecards_data = get_api_data(url)
         for scorcard_header_data in scorecards_data:
-            menuitems.append(MenuItem(f'{convert_date_format(scorcard_header_data["date"])} {scorcard_header_data["course"]} {scorcard_header_data["group"]} ({scorcard_header_data["id"]})', str(scorcard_header_data["id"])))
+            menuitems.append(MenuItem(f'{convert_date_format(scorcard_header_data["date"])}, {scorcard_header_data["course"]} {scorcard_header_data["group"]}', str(scorcard_header_data["id"])))
         page.views.append(
             ft.View(
                 "/",
                 [
                 ft.AppBar(
                     leading=ft.Icon(ft.icons.GOLF_COURSE),
-                    title=ft.Text("Scorecard List"),
-                    bgcolor=ft.colors.GREY_100,
+                    title=ft.Text("Scorecards", style=ft.TextStyle(size=16)),
+                    bgcolor=app_bar_color,
                     toolbar_height=40,
                     center_title=True,
                     actions=[
                         ft.IconButton(ft.icons.ADD, on_click=lambda _: page.go("/add_scorecard"))
                     ]
         ),
-                    ft.ListView([create_list_item(menuitem, "Scorecard") for menuitem in menuitems], expand=True)
+                    ft.ListView([create_list_item(menuitem, "Scorecard") for menuitem in menuitems], expand=True )
                 ],
-                bgcolor=ft.colors.GREEN
+                bgcolor=default_bgcolor,
             )
         )
         
@@ -398,12 +396,12 @@ def main(page: ft.Page):
                 ft.View(
                     "/scorecard",
                         [
-                        ft.AppBar(title=ft.TextButton("Scorecard", style=ft.ButtonStyle(color=ft.colors.BLACK), scale = 1.2,  icon="refresh", icon_color="BLACK", on_click=reload_data), color="BLACK", bgcolor=ft.colors.GREY_100, toolbar_height=40, center_title = True),
+                        ft.AppBar(title=ft.TextButton("Scorecard", style=ft.ButtonStyle(color=ft.colors.BLACK), scale = 1.1,  icon="refresh", icon_color="BLACK", on_click=reload_data), color="BLACK", bgcolor=app_bar_color, toolbar_height=40, center_title = True),
                         header,
                         player_select_stack_animation,
                         scorecard_column,
                     ],
-                    bgcolor=ft.colors.GREEN,
+                    bgcolor=default_bgcolor,
                     padding = 5,
                     scroll=ft.ScrollMode.AUTO
                     
@@ -437,23 +435,23 @@ def main(page: ft.Page):
 
             # Create a container to hold the number input fields
             enter_score_container = ft.Container(
-                bgcolor="GREEN",
+                bgcolor=default_bgcolor,
                 content=ft.Column(controls=[
-                    ft.Text(f"Enter Scores for Hole No. {str(hole_no_to_update)}:", color=ft.colors.WHITE, weight="bold")
+                    ft.Text(f"Enter Scores for Hole No. {str(hole_no_to_update)}:", weight="bold", color=primary_text_color, font_family="San Francisco")
                 ])
             )
 
             # Dynamically create number input fields based on the number of players
             for i in range(no_of_players):
-                player_label = ft.Text(f"{score_data['player_details_list'][i]['firstname']}:", color=ft.colors.WHITE, weight="bold")
+                player_label = ft.Text(f"{score_data['player_details_list'][i]['firstname']}:", weight="bold", color=primary_text_color, font_family="San Francisco")
                 
                 number_input = ft.TextField(
                     label="Enter Gross Score",
                     keyboard_type=ft.KeyboardType.NUMBER,  # Set keyboard type to number
                     width=200,
-                    color=ft.colors.WHITE,
+                    color=primary_text_color,
                     input_filter=ft.NumbersOnlyInputFilter(), 
-                    border_color=ft.colors.WHITE
+                    border_color=primary_text_color
                 )
                 number_fields.append(number_input)
                 enter_score_container.content.controls.extend([player_label, number_input])
@@ -465,12 +463,12 @@ def main(page: ft.Page):
                 ft.View(
                     "/add_score",
                     [
-                        ft.AppBar(title=ft.Text("Player Scores"), color="BLACK", bgcolor=ft.colors.GREY_100, toolbar_height=40, center_title = True),
+                        ft.AppBar(title=ft.Text("Player Scores", style=ft.TextStyle(size=16)), color="BLACK", bgcolor=app_bar_color, toolbar_height=40, center_title = True),
                         
                         enter_score_container, 
                         update_button
                     ],
-                    bgcolor=ft.colors.GREEN,
+                    bgcolor=default_bgcolor,
                     padding = 5,
                     scroll=ft.ScrollMode.AUTO
                 )
@@ -487,10 +485,10 @@ def main(page: ft.Page):
                 ft.View(
                     "/add_scorecard",
                     [
-                        ft.AppBar(title=ft.Text("Select Group for Scorecard"), color="BLACK", bgcolor=ft.colors.GREY_100, toolbar_height=40, center_title = True),
+                        ft.AppBar(title=ft.Text("Select Group for Scorecard", style=ft.TextStyle(size=16)), color="BLACK", bgcolor=app_bar_color, toolbar_height=40, center_title = True),
                         ft.ListView([create_list_item(group_menuitem, "Golfgroup") for group_menuitem in group_menuitems], expand=True)
                     ],
-                    bgcolor=ft.colors.GREEN,
+                    bgcolor=default_bgcolor,
                     padding = 5,
                     scroll=ft.ScrollMode.AUTO
                 )
@@ -564,25 +562,34 @@ def main(page: ft.Page):
             # Create a list to store the number input fields
             number_fields = []
 
+            # Create a list to store the players handicap from the API
+            player_hcps = []
+            for i in range(no_of_players):
+                url = f'{url_prefix}/api/getcurrenthandicap/{buddys[i]["user_id"]}/'
+                player_hcp = get_api_data(url)
+                player_hcps.append(player_hcp["hcp_num"])
+            # print(player_hcps)    
+
+
             # Create a container to hold the number input fields
             enter_handicap_container = ft.Container(
-                bgcolor="GREEN",
+                bgcolor=default_bgcolor,
                 padding=10,
                 content=ft.Column(controls=[
-                    ft.Text(f"Course Handicaps for players:", color=ft.colors.WHITE, weight="bold")
+                    ft.Text(f"Course Handicaps for players:", weight="bold", color=primary_text_color, font_family="San Francisco")
                 ])
             )
 
             for i in range(no_of_players):
-                player_label = ft.Text(f"{buddys[i]['firstname']}:", color=ft.colors.WHITE, weight="bold")
+                player_label = ft.Text(f"{buddys[i]['firstname']} (HCP {player_hcps[i]}):", weight="bold", color=primary_text_color, font_family="San Francisco")
                 
                 number_input = ft.TextField(
                     label="Enter Course Handicap",
                     keyboard_type=ft.KeyboardType.NUMBER,  # Set keyboard type to number
                     width=200,
-                    color=ft.colors.WHITE,
+                    color=primary_text_color,
                     input_filter=ft.NumbersOnlyInputFilter(), 
-                    border_color=ft.colors.WHITE
+                    border_color=primary_text_color
                 )
                 number_fields.append(number_input)
                 enter_handicap_container.content.controls.extend([player_label, number_input])
@@ -594,12 +601,12 @@ def main(page: ft.Page):
                 ft.View(
                     "/initialise_scorecard",
                     [
-                        ft.AppBar(title=ft.Text("Enter Course & Player Details"), color="BLACK", bgcolor=ft.colors.GREY_100, toolbar_height=40, center_title = True),
+                        ft.AppBar(title=ft.Text("Enter Course & Player Details", style=ft.TextStyle(size=16)),  color="BLACK", bgcolor=app_bar_color, toolbar_height=40, center_title = True),
                         courses_dropdown,
                         enter_handicap_container,
                         create_button
                     ],
-                    bgcolor=ft.colors.GREEN,
+                    bgcolor=default_bgcolor,
                     padding = 5,
                     scroll=ft.ScrollMode.AUTO
                 )
@@ -617,21 +624,21 @@ def main(page: ft.Page):
         if ItemType == "Scorecard":
             return ft.Container(
                 content=ft.Column([
-                    ft.Text(MenuItem.display, size=14, weight="bold", color=ft.colors.WHITE), 
+                    ft.Text(MenuItem.display, size=14, color=primary_text_color, font_family="San Francisco"), 
                 ]),
                 on_click=lambda _: show_scorecard_details(MenuItem),
                 padding=15,
-                bgcolor=ft.colors.GREEN,
+                bgcolor=default_bgcolor,
                 border_radius=5
             )
         else:   # Item Type is Golfgroup
             return ft.Container(
                 content=ft.Column([
-                    ft.Text(MenuItem.display, size=14, weight="bold", color=ft.colors.WHITE), 
+                    ft.Text(MenuItem.display, size=14, color=primary_text_color, font_family="San Francisco"), 
                 ]),
                 on_click=lambda _: add_scorecard(MenuItem),
                 padding=15,
-                bgcolor=ft.colors.GREEN,
+                bgcolor=default_bgcolor,
                 border_radius=5
             )
 
