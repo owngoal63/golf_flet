@@ -2,10 +2,11 @@ import flet as ft
 import requests
 import datetime
 import os
+import asyncio
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-# runmode = "PROD"
+runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -57,7 +58,7 @@ def get_api_data(url: str):
     return url_data
 ### End of Get API Data
 
-def main(page: ft.Page):
+async def main(page: ft.Page):
 
     global score_data
     global player_select_containers
@@ -352,7 +353,7 @@ def main(page: ft.Page):
                 [
                 ft.AppBar(
                     leading=ft.Icon(ft.icons.GOLF_COURSE),
-                    title=ft.Text("Scorecards", style=ft.TextStyle(size=16)),
+                    title=ft.Text("Scorecards", style=ft.TextStyle(size=16, color=primary_text_color, font_family="San Francisco")),
                     bgcolor=app_bar_color,
                     toolbar_height=40,
                     center_title=True,
@@ -396,7 +397,7 @@ def main(page: ft.Page):
                 ft.View(
                     "/scorecard",
                         [
-                        ft.AppBar(title=ft.TextButton("Scorecard", style=ft.ButtonStyle(color=ft.colors.BLACK), scale = 1.1,  icon="refresh", icon_color="BLACK", on_click=reload_data), color="BLACK", bgcolor=app_bar_color, toolbar_height=40, center_title = True),
+                        ft.AppBar(title=ft.TextButton("Scorecard", style=ft.ButtonStyle(color=primary_text_color), scale = 1.1,  icon="refresh", icon_color=primary_text_color, on_click=reload_data), color="BLACK", bgcolor=app_bar_color, toolbar_height=40, center_title = True),
                         header,
                         player_select_stack_animation,
                         scorecard_column,
@@ -463,7 +464,7 @@ def main(page: ft.Page):
                 ft.View(
                     "/add_score",
                     [
-                        ft.AppBar(title=ft.Text("Player Scores", style=ft.TextStyle(size=16)), color="BLACK", bgcolor=app_bar_color, toolbar_height=40, center_title = True),
+                        ft.AppBar(title=ft.Text("Player Scores", style=ft.TextStyle(size=16)), color=primary_text_color, bgcolor=app_bar_color, toolbar_height=40, center_title = True),
                         
                         enter_score_container, 
                         update_button
@@ -479,13 +480,13 @@ def main(page: ft.Page):
             url = f'{url_prefix}/api/getgroups/'
             groups = get_api_data(url)
             for group in groups:
-                group_menuitems.append(MenuItem(f'{group["group_name"]} ({group["id"]})', str(group["id"])))
+                group_menuitems.append(MenuItem(f'{group["group_name"]}', str(group["id"])))
 
             page.views.append(
                 ft.View(
                     "/add_scorecard",
                     [
-                        ft.AppBar(title=ft.Text("Select Group for Scorecard", style=ft.TextStyle(size=16)), color="BLACK", bgcolor=app_bar_color, toolbar_height=40, center_title = True),
+                        ft.AppBar(title=ft.Text("Select Group for Scorecard", style=ft.TextStyle(size=16)), color=primary_text_color, bgcolor=app_bar_color, toolbar_height=40, center_title = True),
                         ft.ListView([create_list_item(group_menuitem, "Golfgroup") for group_menuitem in group_menuitems], expand=True)
                     ],
                     bgcolor=default_bgcolor,
@@ -601,7 +602,7 @@ def main(page: ft.Page):
                 ft.View(
                     "/initialise_scorecard",
                     [
-                        ft.AppBar(title=ft.Text("Enter Course & Player Details", style=ft.TextStyle(size=16)),  color="BLACK", bgcolor=app_bar_color, toolbar_height=40, center_title = True),
+                        ft.AppBar(title=ft.Text("Enter Course & Player Details", style=ft.TextStyle(size=16)),  color=primary_text_color, bgcolor=app_bar_color, toolbar_height=40, center_title = True),
                         courses_dropdown,
                         enter_handicap_container,
                         create_button
@@ -651,6 +652,36 @@ def main(page: ft.Page):
         page.go("/initialise_scorecard")
 
 
+    splash_screen = ft.Container(
+        content=ft.Column(
+            controls=[
+                ft.Icon(ft.icons.GOLF_COURSE, color=ft.colors.GREEN_400, size=150),
+                ft.Text(
+                    "Handicappy Mobile",
+                    size=20,
+                    weight='bold',
+                    color=ft.colors.GREEN_400,
+                    font_family="San Francisco"
+                )
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        alignment=ft.alignment.center,
+        expand=True
+    )
+
+        # Add the splash screen to the page
+    page.add(splash_screen)
+    await page.update_async()
+
+    # Wait for 2 seconds
+    await asyncio.sleep(3)
+
+    # Remove the splash screen 
+    page.controls.clear()
+    
+    # Go to "/" root page
     page.on_route_change = route_change
     page.on_view_pop = view_pop
     page.go(page.route)
