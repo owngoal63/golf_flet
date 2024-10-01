@@ -6,7 +6,7 @@ import asyncio
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-runmode = "PROD"
+# runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -64,6 +64,18 @@ async def main(page: ft.Page):
     global player_select_containers
 
     page.title = "Handy Scorecard App"
+
+    # Function to save to storage
+    async def save_to_storage(key, value):
+        await page.client_storage.set_async(key, str(value))
+
+    # Function to retrieve from storage
+    async def retrieve_from_storage(key, default=0):
+        value_str = await page.client_storage.get_async(key)
+        return int(value_str) if value_str is not None else default
+    
+    # await save_to_storage("my_number", 42)
+    retrieved_value = await retrieve_from_storage("my_number")
 
     # Placeholder for the Score Container
     scorecard_outer_container = ft.AnimatedSwitcher(
@@ -337,6 +349,7 @@ async def main(page: ft.Page):
         
         # refresh the scorecard data table
         update_data_table(int(app_id_of_player_in_focus))
+
         page.update()
         return
 
@@ -352,7 +365,7 @@ async def main(page: ft.Page):
                 "/",
                 [
                 ft.AppBar(
-                    leading=ft.Icon(ft.icons.GOLF_COURSE),
+                    leading=ft.IconButton(ft.icons.PERSON, on_click=lambda _: page.go("/get_users")),
                     title=ft.Text("Scorecards", style=ft.TextStyle(size=16, color=primary_text_color, font_family="San Francisco")),
                     bgcolor=app_bar_color,
                     toolbar_height=40,
@@ -360,8 +373,30 @@ async def main(page: ft.Page):
                     actions=[
                         ft.IconButton(ft.icons.ADD, on_click=lambda _: page.go("/add_scorecard"))
                     ]
-        ),
-                    ft.ListView([create_list_item(menuitem, "Scorecard") for menuitem in menuitems], expand=True )
+                ),      
+                ft.Container(
+                    content = ft.ListView(
+                        [
+                            ft.Column([
+                                create_list_item(menuitem, "Scorecard"),
+                                ft.Divider(color=ft.colors.OUTLINE, thickness=1)
+                            ])
+                            for menuitem in menuitems[:-1]
+                        ] + [create_list_item(menuitems[-1], "Scorecard")],  # Last item without divider
+                        expand=True
+                    ),
+                    border=ft.border.all(2, ft.colors.PURPLE),
+                        border_radius=10,
+                        padding=10,
+                        expand=True,
+                        bgcolor=ft.colors.BLUE_GREY_50,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=10,
+                            color=ft.colors.BLUE_GREY_300,
+                            offset=ft.Offset(0, 5),
+                        )
+                    )
                 ],
                 bgcolor=default_bgcolor,
             )
@@ -486,8 +521,30 @@ async def main(page: ft.Page):
                 ft.View(
                     "/add_scorecard",
                     [
-                        ft.AppBar(title=ft.Text("Select Group for Scorecard", style=ft.TextStyle(size=16)), color=primary_text_color, bgcolor=app_bar_color, toolbar_height=40, center_title = True),
-                        ft.ListView([create_list_item(group_menuitem, "Golfgroup") for group_menuitem in group_menuitems], expand=True)
+                        ft.AppBar(title=ft.Text("Select Group for Scorecard", style=ft.TextStyle(size=16,  color=primary_text_color, font_family="San Francisco")), color=primary_text_color, bgcolor=app_bar_color, toolbar_height=40, center_title = True),
+                        ft.Container(
+                            content = ft.ListView(
+                                [
+                                    ft.Column([
+                                        create_list_item(group_menuitem, "GolfGroup"),
+                                        ft.Divider(color=ft.colors.OUTLINE, thickness=1)
+                                    ])
+                                    for group_menuitem in group_menuitems[:-1]
+                                ] + [create_list_item(group_menuitems[-1], "GolfGroup")],  # Last item without divider
+                                expand=True
+                            ),
+                            border=ft.border.all(2, ft.colors.PURPLE),
+                                border_radius=10,
+                                padding=10,
+                                expand=True,
+                                bgcolor=ft.colors.BLUE_GREY_50,
+                                shadow=ft.BoxShadow(
+                                    spread_radius=1,
+                                    blur_radius=10,
+                                    color=ft.colors.BLUE_GREY_300,
+                                    offset=ft.Offset(0, 5),
+                                )
+                            )
                     ],
                     bgcolor=default_bgcolor,
                     padding = 5,
@@ -612,6 +669,54 @@ async def main(page: ft.Page):
                     scroll=ft.ScrollMode.AUTO
                 )
             )
+
+        elif page.route == "/get_users":
+            user_menuitems = []
+            url = f'{url_prefix}/api/getusers/'
+            users = get_api_data(url)
+            for user in users:
+                user_menuitems.append(MenuItem(f'{user["firstname"]}, {user["email"]}' , str(user["id"])))
+                # print(f'{user["firstname"]}, {user["email"]}')
+            page.views.append(
+            ft.View(
+                "/get_users",
+                [
+                    ft.AppBar(
+                        title=ft.Text("Select your profile from list", 
+                                    style=ft.TextStyle(size=16, color=primary_text_color, font_family="San Francisco")),
+                        color=primary_text_color,
+                        bgcolor=app_bar_color,
+                        toolbar_height=40,
+                        center_title=True
+                    ),
+                    ft.Container(
+                        content=ft.ListView(
+                            [
+                                ft.Column([
+                                    create_list_item(user_menuitem, "User"),
+                                    ft.Divider(color=ft.colors.OUTLINE, thickness=1)
+                                ])
+                                for user_menuitem in user_menuitems[:-1]
+                            ] + [create_list_item(user_menuitems[-1], "User")],  # Last item without divider
+                            expand=True,
+                        ),
+                        border=ft.border.all(2, ft.colors.PURPLE),
+                        border_radius=10,
+                        padding=10,
+                        expand=True,
+                        bgcolor=ft.colors.BLUE_GREY_50,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=10,
+                            color=ft.colors.BLUE_GREY_300,
+                            offset=ft.Offset(0, 5),
+                        )
+                    )
+                ],
+                bgcolor=default_bgcolor,
+            )
+        )
+
         
         page.update()
         
@@ -621,6 +726,36 @@ async def main(page: ft.Page):
         top_view = page.views[-1]
         page.go(top_view.route)
 
+    def display_dialog_for_setting_user(MenuItem):
+
+        def save_to_storage(key, value):
+            page.client_storage.set(key, str(value))
+
+        def close_dlg(e):
+            save_to_storage("my_id", int(MenuItem.menuitem_id))
+            dlg.open = False
+            page.update()
+
+        def open_dlg():
+            page.dialog = dlg
+            dlg.open = True
+            page.update()
+
+        def navigate_to_root(e):
+            close_dlg(e)
+            page.go("/")
+
+        dlg = ft.AlertDialog(
+            print("Your profile has been set to {MenuItem.menuitem_id}"),
+            title=ft.Text("Your profile is now set on this device"),
+            content=ft.ElevatedButton("OK", on_click=navigate_to_root),
+            on_dismiss=close_dlg,
+        )
+
+        open_dlg()
+
+        return
+
     def create_list_item(MenuItem, ItemType):
         if ItemType == "Scorecard":
             return ft.Container(
@@ -629,17 +764,28 @@ async def main(page: ft.Page):
                 ]),
                 on_click=lambda _: show_scorecard_details(MenuItem),
                 padding=15,
-                bgcolor=default_bgcolor,
+                bgcolor=ft.colors.BLUE_GREY_50,
                 border_radius=5
             )
-        else:   # Item Type is Golfgroup
+        elif ItemType == "GolfGroup":   # Item Type is Golfgroup
             return ft.Container(
                 content=ft.Column([
                     ft.Text(MenuItem.display, size=14, color=primary_text_color, font_family="San Francisco"), 
                 ]),
                 on_click=lambda _: add_scorecard(MenuItem),
                 padding=15,
-                bgcolor=default_bgcolor,
+                bgcolor=ft.colors.BLUE_GREY_50,
+                border_radius=5
+            )
+        else:   # Item Type is User
+            # print("user")
+            return ft.Container(
+                content=ft.Column([
+                    ft.Text(MenuItem.display, size=14, color=primary_text_color, font_family="San Francisco"), 
+                ]),
+                on_click=lambda _: display_dialog_for_setting_user(MenuItem),
+                padding=15,
+                bgcolor=ft.colors.BLUE_GREY_50,
                 border_radius=5
             )
 
