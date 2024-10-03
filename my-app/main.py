@@ -6,7 +6,7 @@ import asyncio
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-# runmode = "PROD"
+runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -354,12 +354,23 @@ async def main(page: ft.Page):
         return
 
     def route_change(route):
+
+        # Function to retrieve key value from local storage
+        def retrieve_from_storage(key, default=0):
+            value_str = page.client_storage.get(key)
+            return int(value_str) if value_str is not None else default
+
         page.views.clear()
+        my_id = retrieve_from_storage("my_id")      # Get the key value of the player_id if set (zero if not)
+        # print(my_id)
         menuitems = []
-        url = f'{url_prefix}/api/getscorecardheaders/'
+        if my_id == 0:       # storage variable has not yet been set
+            url = f'{url_prefix}/api/getscorecardheadersextended/'  # No filter on Scorecard list
+        else:
+            url = f'{url_prefix}/api/getscorecardheadersextended/?player_id={my_id}'    # Filter by player set in storage variable
         scorecards_data = get_api_data(url)
         for scorcard_header_data in scorecards_data:
-            menuitems.append(MenuItem(f'{convert_date_format(scorcard_header_data["date"])}, {scorcard_header_data["course"]} {scorcard_header_data["group"]}', str(scorcard_header_data["id"])))
+            menuitems.append(MenuItem(f'{convert_date_format(scorcard_header_data["date"])}, {scorcard_header_data["course_name"]} {scorcard_header_data["group"]["group_name"]}', str(scorcard_header_data["id"])))
         page.views.append(
             ft.View(
                 "/",
@@ -746,7 +757,7 @@ async def main(page: ft.Page):
             page.go("/")
 
         dlg = ft.AlertDialog(
-            print("Your profile has been set to {MenuItem.menuitem_id}"),
+            print(f"Your profile has been set to {MenuItem.menuitem_id}"),
             title=ft.Text("Your profile is now set on this device"),
             content=ft.ElevatedButton("OK", on_click=navigate_to_root),
             on_dismiss=close_dlg,
