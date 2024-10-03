@@ -683,6 +683,7 @@ async def main(page: ft.Page):
 
         elif page.route == "/get_users":
             user_menuitems = []
+            user_menuitems.append(MenuItem("Show All Players", str(0)))    # First option is to show all players
             url = f'{url_prefix}/api/getusers/'
             users = get_api_data(url)
             for user in users:
