@@ -510,13 +510,32 @@ async def main(page: ft.Page):
                 ft.View(
                     "/add_score",
                     [
-                        ft.AppBar(title=ft.Text("Player Scores", style=ft.TextStyle(size=16)), color=primary_text_color, bgcolor=app_bar_color, toolbar_height=40, center_title = True),
-                        
-                        enter_score_container, 
-                        update_button
+                        ft.AppBar(
+                            title=ft.Text("Player Scores", style=ft.TextStyle(size=16, color=primary_text_color, font_family="San Francisco")),
+                            bgcolor=app_bar_color,
+                            toolbar_height=40,
+                            center_title=True
+                        ),
+                        ft.Container(
+                            content=ft.Column([
+                                enter_score_container,
+                                update_button
+                            ]),
+                            border=ft.border.all(2, ft.colors.PURPLE),
+                            border_radius=10,
+                            padding=10,
+                            expand=True,
+                            bgcolor=ft.colors.BLUE_GREY_50,
+                            shadow=ft.BoxShadow(
+                                spread_radius=1,
+                                blur_radius=10,
+                                color=ft.colors.BLUE_GREY_300,
+                                offset=ft.Offset(0, 5),
+                            )
+                        )
                     ],
                     bgcolor=default_bgcolor,
-                    padding = 5,
+                    padding=5,
                     scroll=ft.ScrollMode.AUTO
                 )
             )
