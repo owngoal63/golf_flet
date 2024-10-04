@@ -417,7 +417,7 @@ async def main(page: ft.Page):
             url = f'{url_prefix}/api/getscoredetails/{page.client_storage.get("current_scorecard_id")}/?format=json' # 4 ball
             global score_data
             score_data = get_api_data(url)
-            header = header_text(score_data["course_name"], score_data["group_name"], convert_date_format(score_data["date"]))
+            header = header_text(score_data["course_name"], score_data["name"], convert_date_format(score_data["date"]))
             global player_select_containers
             player_select_containers = [player_select_container(i, score_data) for i in range(score_data["no_of_players"])]
             
@@ -482,7 +482,7 @@ async def main(page: ft.Page):
 
             # Create a container to hold the number input fields
             enter_score_container = ft.Container(
-                bgcolor=default_bgcolor,
+                bgcolor=ft.colors.BLUE_GREY_50,
                 content=ft.Column(controls=[
                     ft.Text(f"Enter Scores for Hole No. {str(hole_no_to_update)}:", weight="bold", color=primary_text_color, font_family="San Francisco")
                 ])
@@ -498,7 +498,8 @@ async def main(page: ft.Page):
                     width=200,
                     color=primary_text_color,
                     input_filter=ft.NumbersOnlyInputFilter(), 
-                    border_color=primary_text_color
+                    border_color=primary_text_color,
+                    focused_border_color=ft.colors.PURPLE
                 )
                 number_fields.append(number_input)
                 enter_score_container.content.controls.extend([player_label, number_input])
@@ -588,7 +589,7 @@ async def main(page: ft.Page):
 
             def create_scorecard(e):
                 # print("Create Scorecard")
-                # http://127.0.0.1:8000/api/createscorecard/8/3/3/6/26/7/27/8/28/0/0/
+                # http://127.0.0.1:8000/api/createscorecard/8/3/3/6/26/7/27/8/28/0/0/scorecardname/
 
                 player_details_string = ""
 
@@ -604,9 +605,11 @@ async def main(page: ft.Page):
                 if not courses_dropdown.value:  # If dropdown field is blank exit function
                     return
                 
+                scorecardname = scorecard_name_input.value      # Get the Scoredard name
+                
                 # print("Course id", courses_dropdown.value)
                 # print("Group id", page.client_storage.get("group_id"))
-                url = f"{url_prefix}/api/createscorecard/{str(page.client_storage.get('group_id'))}/{str(courses_dropdown.value)}/{str(no_of_players)}/{player_details_string}"
+                url = f"{url_prefix}/api/createscorecard/{str(page.client_storage.get('group_id'))}/{str(courses_dropdown.value)}/{str(no_of_players)}/{player_details_string}{scorecardname}/"
                 # print(url)
                 response = requests.get(url)
                 # if response.status_code == 200:
@@ -626,6 +629,15 @@ async def main(page: ft.Page):
             #     print(buddy)
             no_of_players =  len(buddys)
 
+            # Create scorecard name input field
+            scorecard_name_input = ft.TextField(
+                label="Scorecard Name (optional)",
+                value=f'{buddys[0]["group_name"]}',
+                border_color=primary_text_color,
+                focused_border_color=ft.colors.PURPLE,
+                border_radius=10,
+            )
+
             # Get Courses from API
             url = f'{url_prefix}/api/courses/'
             courses = get_api_data(url)
@@ -637,13 +649,17 @@ async def main(page: ft.Page):
             def dropdown_changed(e):
                 selected_id = courses_dropdown.value
                 return
+            
 
             # Create a dropdown field using the options
             courses_dropdown = ft.Dropdown(
                 label="Select Course",
                 options=options,
-                border_color=ft.colors.WHITE,
+                border_color=primary_text_color,
                 padding=5,
+                focused_border_color=ft.colors.PURPLE,
+                border_radius=10,
+                autofocus=True,
                 on_change=dropdown_changed
             )
 
@@ -661,7 +677,7 @@ async def main(page: ft.Page):
 
             # Create a container to hold the number input fields
             enter_handicap_container = ft.Container(
-                bgcolor=default_bgcolor,
+                bgcolor=ft.colors.BLUE_GREY_50,
                 padding=10,
                 content=ft.Column(controls=[
                     ft.Text(f"Course Handicaps for players:", weight="bold", color=primary_text_color, font_family="San Francisco")
@@ -677,7 +693,8 @@ async def main(page: ft.Page):
                     width=200,
                     color=primary_text_color,
                     input_filter=ft.NumbersOnlyInputFilter(), 
-                    border_color=primary_text_color
+                    border_color=primary_text_color,
+                    focused_border_color=ft.colors.PURPLE,
                 )
                 number_fields.append(number_input)
                 enter_handicap_container.content.controls.extend([player_label, number_input])
@@ -689,13 +706,34 @@ async def main(page: ft.Page):
                 ft.View(
                     "/initialise_scorecard",
                     [
-                        ft.AppBar(title=ft.Text("Enter Course & Player Details", style=ft.TextStyle(size=16)),  color=primary_text_color, bgcolor=app_bar_color, toolbar_height=40, center_title = True),
-                        courses_dropdown,
-                        enter_handicap_container,
-                        create_button
+                        ft.AppBar(
+                            title=ft.Text("Enter Course & Player Details", style=ft.TextStyle(size=16, color=primary_text_color, font_family="San Francisco")),
+                            bgcolor=app_bar_color,
+                            toolbar_height=40,
+                            center_title=True
+                        ),
+                        ft.Container(
+                            content=ft.Column([
+                                scorecard_name_input,
+                                courses_dropdown,
+                                enter_handicap_container,
+                                create_button
+                            ]),
+                            border=ft.border.all(2, ft.colors.PURPLE),
+                            border_radius=10,
+                            padding=10,
+                            expand=True,
+                            bgcolor=ft.colors.BLUE_GREY_50,
+                            shadow=ft.BoxShadow(
+                                spread_radius=1,
+                                blur_radius=10,
+                                color=ft.colors.BLUE_GREY_300,
+                                offset=ft.Offset(0, 5),
+                            )
+                        )
                     ],
                     bgcolor=default_bgcolor,
-                    padding = 5,
+                    padding=5,
                     scroll=ft.ScrollMode.AUTO
                 )
             )
