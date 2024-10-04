@@ -6,7 +6,7 @@ import asyncio
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-runmode = "PROD"
+# runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -370,7 +370,7 @@ async def main(page: ft.Page):
             url = f'{url_prefix}/api/getscorecardheadersextended/?player_id={my_id}'    # Filter by player set in storage variable
         scorecards_data = get_api_data(url)
         for scorcard_header_data in scorecards_data:
-            menuitems.append(MenuItem(f'{convert_date_format(scorcard_header_data["date"])}, {scorcard_header_data["course_name"]} {scorcard_header_data["group"]["group_name"]}', str(scorcard_header_data["id"])))
+            menuitems.append(MenuItem(f'{convert_date_format(scorcard_header_data["date"])}, {scorcard_header_data["course_name"]} {scorcard_header_data["name"]}', str(scorcard_header_data["id"])))
         page.views.append(
             ft.View(
                 "/",
@@ -683,7 +683,7 @@ async def main(page: ft.Page):
 
         elif page.route == "/get_users":
             user_menuitems = []
-            user_menuitems.append(MenuItem("Show All Players", str(0)))    # First option is to show all players
+            user_menuitems.append(MenuItem("Show All Players", str(0)))    # First option is to show all players ( id = 0 )
             url = f'{url_prefix}/api/getusers/'
             users = get_api_data(url)
             for user in users:
