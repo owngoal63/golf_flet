@@ -830,13 +830,14 @@ async def main(page: ft.Page):
         top_view = page.views[-1]
         page.go(top_view.route)
 
-    def display_dialog_for_setting_user(MenuItem):
+    def display_popup_dialog(pre_text:str, parameter_str:str = "", post_text:str = ""):
 
         def save_to_storage(key, value):
             page.client_storage.set(key, str(value))
 
         def close_dlg(e):
-            save_to_storage("my_id", int(MenuItem.menuitem_id))
+            if parameter_str != "" and int(parameter_str) >= 0:  # Check if the parameter string is valid for save to storage
+                save_to_storage("my_id", int(parameter_str))
             dlg.open = False
             page.update()
 
@@ -850,7 +851,6 @@ async def main(page: ft.Page):
             page.go("/")
 
         dlg = ft.AlertDialog(
-            print(f"Your profile has been set to {MenuItem.menuitem_id}"),
             title=ft.Text("Your profile is now set on this device"),
             content=ft.ElevatedButton("OK", on_click=navigate_to_root),
             on_dismiss=close_dlg,
@@ -887,7 +887,7 @@ async def main(page: ft.Page):
                 content=ft.Column([
                     ft.Text(MenuItem.display, size=14, color=primary_text_color, font_family="San Francisco"), 
                 ]),
-                on_click=lambda _: display_dialog_for_setting_user(MenuItem),
+                on_click=lambda _: display_popup_dialog("Your profile is now set on this device", str(MenuItem.menuitem_id),""),
                 padding=15,
                 bgcolor=ft.colors.BLUE_GREY_50,
                 border_radius=5
