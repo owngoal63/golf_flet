@@ -6,7 +6,7 @@ import asyncio
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-runmode = "PROD"
+# runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -172,6 +172,11 @@ async def main(page: ft.Page):
                 )
 
     def container_click(e):
+
+        def retrieve_from_storage(key, default=0):
+            value_str = page.client_storage.get(key)
+            return int(value_str) if value_str is not None else default
+        
         clicked_container = e.control
         clicked_index = player_select_containers.index(clicked_container)
         # Reset all containers to default color
@@ -185,9 +190,13 @@ async def main(page: ft.Page):
         global container_focus
         container_focus = clicked_container.data
 
-        update_data_table(clicked_container.data)
-
-        page.update()
+        my_id = retrieve_from_storage("my_id")
+        # Divert to add_score only if Admin is in position 0 and has been clicked in this position
+        if clicked_index == 0 and clicked_container.data == 0 and score_data["admin_id"] == my_id and score_data["current_hole_recorded"] <= 17:
+            page.go("/add_score")
+        else:
+            update_data_table(clicked_container.data)
+            page.update()
     
     ### End of Functions for Player Select Controls ###
 
@@ -893,16 +902,16 @@ async def main(page: ft.Page):
                 if response.status_code == 201:
                     response_confirmation = response.json()
                 new_group_id = response_confirmation.get('id')
-                print("id of newly created group", new_group_id)
+                # print("id of newly created group", new_group_id)
                 buddy_ids = [cb.data for cb in checkboxes if cb.value]
-                print(buddy_ids)
+                # print(buddy_ids)
                 for buddy_id in buddy_ids:
                     url = f"{url_prefix}/api/createbuddy/{str(buddy_id)}/{str(new_group_id)}/"
-                    print("buddy url", url)
+                    # print("buddy url", url)
                     response = requests.post(url)
                     if response.status_code == 201:
                         response_confirmation = response.json()
-                        print(response_confirmation)
+                        # print(response_confirmation)
                 display_popup_dialog(f"The group {str(checked_items_text.value)} has been created.")
                 # page.update()
 
