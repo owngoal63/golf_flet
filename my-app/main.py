@@ -35,6 +35,16 @@ class MenuItem:
 def quit_app(_):
     os._exit(0)
 
+def extract_email_prefix(email: str) -> str:
+    # Find the position of the '@' character
+    at_index = email.find('@')
+    
+    if at_index != -1 and at_index + 1 < len(email):
+        # Return everything up to and including '@' plus the first character after it
+        return email[:at_index + 3] + "..."  # Slice the string up to @ and the first 2 chars after and add dots
+    return email  # In case '@' is not found, return the original string
+
+
 def convert_date_format(date_str):
     date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d")
     return date_obj.strftime("%d-%b-%y")
@@ -542,11 +552,21 @@ async def main(page: ft.Page):
             )
 
         elif page.route == "/add_scorecard":
+
+            def display_add_group_button(condition):
+                if condition:
+                    return [ft.IconButton(ft.icons.ADD, on_click=lambda _: page.go("/create_group"))]
+                else:
+                    return []
+                
             group_menuitems = []
             url = f'{url_prefix}/api/getgroups/'
             groups = get_api_data(url)
             for group in groups:
                 group_menuitems.append(MenuItem(f'{group["group_name"]}', str(group["id"])))
+
+            # Sort the menu_items by their index
+            group_menuitems.sort(key=lambda x: int(x.menuitem_id), reverse=True)
 
             page.views.append(
                 ft.View(
@@ -558,9 +578,7 @@ async def main(page: ft.Page):
                             bgcolor=app_bar_color,
                             toolbar_height=40,
                             center_title = True,
-                            actions=[
-                                ft.IconButton(ft.icons.ADD, on_click=lambda _: page.go("/create_group"))    
-                            ]
+                            actions = display_add_group_button(my_id != 0)
                         ),
                         ft.Container(
                             content = ft.ListView(
@@ -753,7 +771,7 @@ async def main(page: ft.Page):
             url = f'{url_prefix}/api/getusers/'
             users = get_api_data(url)
             for user in users:
-                user_menuitems.append(MenuItem(f'{user["firstname"]}, {user["email"]}' , str(user["id"])))
+                user_menuitems.append(MenuItem(f'{user["firstname"]}, {extract_email_prefix(user["email"])}' , str(user["id"])))
                 # print(f'{user["firstname"]}, {user["email"]}')
             page.views.append(
             ft.View(
@@ -796,11 +814,111 @@ async def main(page: ft.Page):
         )
             
         elif page.route == "/create_group":
+
             user_checkbox_items = []
             url = f'{url_prefix}/api/getusers/'
             users = get_api_data(url)
             for user in users:
-                user_checkbox_items.append(MenuItem(f'{user["firstname"]}, {user["email"]}' , str(user["id"])))
+                if user["id"] != my_id: user_checkbox_items.append(MenuItem(f'{user["firstname"]}, {user["email"]}' , str(user["id"])))
+                if user["id"] == my_id: 
+                    user_checkbox_items.insert(0, MenuItem(f'{user["firstname"]}, {user["email"]}' , str(user["id"])))
+                    admin_firstname = user["firstname"]
+                    admin_id = user["id"]
+
+            print()
+            for user in user_checkbox_items:
+                print(user.display,user.menuitem_id)
+
+            # List to store checkbox references
+            checkboxes = []
+
+            # TextField to display checked items
+            checked_items_text = ft.TextField(label="Group Name", read_only=True)
+
+            # Function to create a new checkbox
+            def create_checkbox(label, value, disabled=False, checked=False):
+                return ft.Checkbox(label=label, value=checked, data=value, disabled=disabled, on_change=on_checkbox_change)
+
+            # Function to update the checked items TextField
+            def update_checked_items_text():
+                checked = [cb.label.split(",")[0] for cb in checkboxes[1:] if cb.value]  # Exclude Admin ( my_id ) from this list
+                if len(checked) == 0:
+                    checked_items_text.value = admin_firstname
+                elif len(checked) == 1:
+                    checked_items_text.value = f"{admin_firstname} & {checked[0]}"
+                elif len(checked) == 2:
+                    checked_items_text.value = f"{admin_firstname}, {checked[0]} & {checked[1]}"
+                else:
+                    checked_items_text.value = f"{admin_firstname}, {', '.join(checked[:-1])} & {checked[-1]}"
+                page.update()
+
+            # Function to handle checkbox changes
+            def on_checkbox_change(e):
+                if e.control != checkboxes[0]:  # Ignore changes to the Grape checkbox
+                    checked_count = sum(1 for cb in checkboxes[1:] if cb.value)  # Count only editable checkboxes
+                    if checked_count > 3:
+                        e.control.value = False
+                        result.value = f"You can only select up to 3 players (excluding {admin_firstname})."
+                    else:
+                        result.value = f"No. of players selected for group: {checked_count + 1}"
+                    update_checked_items_text()
+                    get_checked_button.disabled = checked_count == 0
+                    page.update()
+
+            # Function to initialize checkboxes
+            def initialize_checkboxes():
+                # Add Admin (my_id) as the first, pre-checked, non-editable checkbox
+                admin_checkbox = create_checkbox(user_checkbox_items[0].display, user_checkbox_items[0].menuitem_id, disabled=True, checked=True)
+                checkboxes.append(admin_checkbox)
+                items_container.controls.append(admin_checkbox)
+
+                # Add the rest of the users
+                for checkbox_item in user_checkbox_items[1:]:
+                    checkbox = create_checkbox(extract_email_prefix(checkbox_item.display), checkbox_item.menuitem_id )
+                    checkboxes.append(checkbox)
+                    items_container.controls.append(checkbox)
+                
+                update_checked_items_text()
+                page.update()
+
+            # Function to get checked items
+            def get_checked_items(e):
+                # checked = [(cb.label, cb.data) for cb in checkboxes if cb.value]
+                # result.value = f"Checked items: {', '.join([f'{item[0]} ({item[1]})' for item in checked])}"
+                # Create Group through API
+                url = f"{url_prefix}/api/creategolfgroup/{str(checked_items_text.value)}/{str(admin_id)}/"
+                print(url)
+                # Temp disable
+                response = requests.post(url)
+                if response.status_code == 201:
+                    response_confirmation = response.json()
+                new_group_id = response_confirmation.get('id')
+                print("id of newly created group", new_group_id)
+                buddy_ids = [cb.data for cb in checkboxes if cb.value]
+                print(buddy_ids)
+                for buddy_id in buddy_ids:
+                    url = f"{url_prefix}/api/createbuddy/{str(buddy_id)}/{str(new_group_id)}/"
+                    print("buddy url", url)
+                    response = requests.post(url)
+                    if response.status_code == 201:
+                        response_confirmation = response.json()
+                        print(response_confirmation)
+                display_popup_dialog(f"The group {str(checked_items_text.value)} has been created.")
+                # page.update()
+
+             # Container for checkboxes
+            items_container = ft.Column()
+
+            # Button to get checked items
+            get_checked_button = ft.ElevatedButton("Create Buddy Group", on_click=get_checked_items, disabled=False)
+
+            # Text area to display result
+            result = ft.Text()
+
+            # Initialize checkboxes
+            initialize_checkboxes()
+
+
             page.views.append(
             ft.View(
                 "/create_group",
@@ -814,6 +932,23 @@ async def main(page: ft.Page):
                         center_title=True
                     ),
                     ft.Container(
+                        content=ft.Column([
+                            items_container,
+                            checked_items_text,
+                            get_checked_button,
+                            result
+                        ]),
+                         border=ft.border.all(2, ft.colors.PURPLE),
+                        border_radius=10,
+                        padding=10,
+                        expand=True,
+                        bgcolor=ft.colors.BLUE_GREY_50,
+                        shadow=ft.BoxShadow(
+                            spread_radius=1,
+                            blur_radius=10,
+                            color=ft.colors.BLUE_GREY_300,
+                            offset=ft.Offset(0, 5),
+                        )
 
                     )
                 ]
@@ -851,7 +986,7 @@ async def main(page: ft.Page):
             page.go("/")
 
         dlg = ft.AlertDialog(
-            title=ft.Text("Your profile is now set on this device"),
+            title=ft.Text(pre_text),
             content=ft.ElevatedButton("OK", on_click=navigate_to_root),
             on_dismiss=close_dlg,
         )
