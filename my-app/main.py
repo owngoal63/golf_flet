@@ -6,7 +6,7 @@ import asyncio
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-# runmode = "PROD"
+runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -551,8 +551,17 @@ async def main(page: ft.Page):
             page.views.append(
                 ft.View(
                     "/add_scorecard",
-                    [
-                        ft.AppBar(title=ft.Text("Select Group for Scorecard", style=ft.TextStyle(size=16,  color=primary_text_color, font_family="San Francisco")), color=primary_text_color, bgcolor=app_bar_color, toolbar_height=40, center_title = True),
+                        [
+                        ft.AppBar(
+                            title=ft.Text("Select Group for Scorecard", style=ft.TextStyle(size=16,  color=primary_text_color, font_family="San Francisco")),
+                            color=primary_text_color,
+                            bgcolor=app_bar_color,
+                            toolbar_height=40,
+                            center_title = True,
+                            actions=[
+                                ft.IconButton(ft.icons.ADD, on_click=lambda _: page.go("/create_group"))    
+                            ]
+                        ),
                         ft.Container(
                             content = ft.ListView(
                                 [
@@ -785,6 +794,32 @@ async def main(page: ft.Page):
                 bgcolor=default_bgcolor,
             )
         )
+            
+        elif page.route == "/create_group":
+            user_checkbox_items = []
+            url = f'{url_prefix}/api/getusers/'
+            users = get_api_data(url)
+            for user in users:
+                user_checkbox_items.append(MenuItem(f'{user["firstname"]}, {user["email"]}' , str(user["id"])))
+            page.views.append(
+            ft.View(
+                "/create_group",
+                [
+                    ft.AppBar(
+                        title=ft.Text("Create Group from these Profiles", 
+                                    style=ft.TextStyle(size=16, color=primary_text_color, font_family="San Francisco")),
+                        color=primary_text_color,
+                        bgcolor=app_bar_color,
+                        toolbar_height=40,
+                        center_title=True
+                    ),
+                    ft.Container(
+
+                    )
+                ]
+            )
+        )
+
 
         
         page.update()
