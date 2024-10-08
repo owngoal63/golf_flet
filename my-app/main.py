@@ -6,7 +6,7 @@ import asyncio
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-runmode = "PROD"
+# runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -477,6 +477,16 @@ async def main(page: ft.Page):
 
         elif page.route == "/add_score":
 
+            def minus_click(e):
+                if int(hole_number_field.value) >= 2:
+                    hole_number_field.value = str(int(hole_number_field.value) - 1)
+                    page.update()
+
+            def plus_click(e):
+                if int(hole_number_field.value) < hole_no_to_update:
+                    hole_number_field.value = str(int(hole_number_field.value) + 1)
+                    page.update()
+
             def validate_change(hole_no):
                 try:
                     hole_no = int(hole_no)
@@ -538,7 +548,11 @@ async def main(page: ft.Page):
                 bgcolor=ft.colors.BLUE_GREY_50,
                 content=ft.Column(controls=[
                     ft.Text(f"Enter Scores for :", weight="bold", color=primary_text_color, font_family="San Francisco"),
-                    hole_number_field
+                    ft.Row(controls=[
+                        ft.IconButton(ft.icons.REMOVE, on_click=minus_click),
+                        hole_number_field,
+                        ft.IconButton(ft.icons.ADD, on_click=plus_click),
+                    ])
                 ])
             )
 
