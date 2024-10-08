@@ -6,7 +6,7 @@ import asyncio
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-# runmode = "PROD"
+runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -192,6 +192,7 @@ async def main(page: ft.Page):
 
         my_id = retrieve_from_storage("my_id")
         # Divert to add_score only if Admin is in position 0 and has been clicked in this position
+        if score_data["current_hole_recorded"] == 18: score_data["current_hole_recorded"] = 17
         if clicked_index == 0 and clicked_container.data == 0 and score_data["admin_id"] == my_id and score_data["current_hole_recorded"] <= 17:
             page.go("/add_score")
         else:
@@ -476,17 +477,35 @@ async def main(page: ft.Page):
 
         elif page.route == "/add_score":
 
+            def validate_change(hole_no):
+                try:
+                    hole_no = int(hole_no)
+                    return 1 <= hole_no <= 10  # Assuming valid scores are between 1 and 10
+                except ValueError:
+                    return False
+
+            def on_hole_num_change(e):
+                if validate_change(e.control.value):
+                    e.control.error_text = None
+                else:
+                    e.control.error_text = f"1-{str(hole_no_to_update)} are valid"
+                e.control.update()
+
             ### Function to Update the match score
             def update_score_data(e):
+                # If any field is blank exit function
                 for field in number_fields:
-                    if field.value == "":  # If any field is blank exit function
+                    if field.value == "":  
                         return
-
+                if hole_number_field.value == "":
+                    return
+                    
                 score_data_string = f"{str(number_fields[0].value)}/{str(number_fields[1].value)}/"      ## Player 1&2 scores
                 score_data_string = score_data_string + f"{str(number_fields[2].value)}/" if score_data["no_of_players"] > 2 else score_data_string + "0/"  # Player 3 score
                 score_data_string = score_data_string + f"{str(number_fields[3].value)}/" if score_data["no_of_players"] > 3 else score_data_string + "0/"  # Player 4 score
                 
-                url = f"{url_prefix}/api/updatescore/{str(score_data['score_id'])}/{str(hole_no_to_update)}/{score_data_string}"
+                url = f"{url_prefix}/api/updatescore/{str(score_data['score_id'])}/{str(hole_number_field.value)}/{score_data_string}"
+                # print(url)
                 response = requests.get(url)
                 if response.status_code == 200:
                     response_confirmation = response.json()
@@ -499,11 +518,27 @@ async def main(page: ft.Page):
             # Create a list to store the number input fields
             number_fields = []
 
+            # Create a TextField to store the hole number
+            hole_number_field = ft.TextField(
+                                    label="Hole No.",
+                                    hint_text=f"Enter 1-{str(hole_no_to_update)}",
+                                    keyboard_type=ft.KeyboardType.NUMBER,
+                                    text_align=ft.TextAlign.CENTER,
+                                    width=100,
+                                    color=primary_text_color,
+                                    input_filter=ft.NumbersOnlyInputFilter(), 
+                                    border_color=primary_text_color,
+                                    focused_border_color=ft.colors.PURPLE,
+                                    value=f"{str(hole_no_to_update)}",
+                                    on_change=on_hole_num_change
+                                )
+
             # Create a container to hold the number input fields
             enter_score_container = ft.Container(
                 bgcolor=ft.colors.BLUE_GREY_50,
                 content=ft.Column(controls=[
-                    ft.Text(f"Enter Scores for Hole No. {str(hole_no_to_update)}:", weight="bold", color=primary_text_color, font_family="San Francisco")
+                    ft.Text(f"Enter Scores for :", weight="bold", color=primary_text_color, font_family="San Francisco"),
+                    hole_number_field
                 ])
             )
 
