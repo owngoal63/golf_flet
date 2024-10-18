@@ -6,7 +6,7 @@ import asyncio
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-# runmode = "PROD"
+runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -192,8 +192,8 @@ async def main(page: ft.Page):
 
         my_id = retrieve_from_storage("my_id")
         # Divert to add_score only if Admin is in position 0 and has been clicked in this position
-        if score_data["current_hole_recorded"] == 18: score_data["current_hole_recorded"] = 17
-        if clicked_index == 0 and clicked_container.data == 0 and score_data["admin_id"] == my_id and score_data["current_hole_recorded"] <= 17:
+        if clicked_index == 0 and clicked_container.data == 0 and score_data["admin_id"] == my_id:
+            if score_data["current_hole_recorded"] == 18: score_data["current_hole_recorded"] = 17      # Override for final hole - force current_hole to be 17th rather than 18th and allow editing
             page.go("/add_score")
         else:
             update_data_table(clicked_container.data)
@@ -281,6 +281,7 @@ async def main(page: ft.Page):
         )
 
         # Define an "Enter Scores" button (gesture Text workaround ??) only if round is not complete and player_type is "Admin"
+        # This is now effectively disabled as player_type has been redefined and will never be "Admin"
         if score_data["current_hole_recorded"] <= 17 and score_data['player_details_list'][player_index]['player_type'] == "Admin":
             button_and_or_score = ft.GestureDetector(
                 content=ft.Text(f"{score_data['player_details_list'][player_index]['firstname'][:5]} {str(score_data['player_details_list'][player_index]['gross_score'])}/{str(score_data['player_details_list'][player_index]['net_score'])} {str(score_data['player_details_list'][player_index]['stableford_total'])}s",
