@@ -6,7 +6,7 @@ import asyncio
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-runmode = "PROD"
+# runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -23,6 +23,7 @@ default_bgcolor = "#E9E9E9"
 highlight_color = ft.colors.PURPLE
 primary_text_color = ft.colors.TEAL_900
 app_bar_color = ft.colors.GREEN_500
+container_button_edge_color = ft.colors.PURPLE_800
 # url = f'{url_prefix}/api/getscorecardheaders/'
 
 class MenuItem:
@@ -177,12 +178,19 @@ async def main(page: ft.Page):
             value_str = page.client_storage.get(key)
             return int(value_str) if value_str is not None else default
         
+        my_id = retrieve_from_storage("my_id")
         clicked_container = e.control
         clicked_index = player_select_containers.index(clicked_container)
-        # Reset all containers to default color
+        # Reset all containers to default states
         for container in player_select_containers:
             container.bgcolor = default_color
+            container.shadow = None
+            container.border = None
         clicked_container.bgcolor = highlight_color     # Change color of clicked container
+        # print("clicked index", clicked_index, "clicked container data", clicked_container.data, "admin_id",score_data["admin_id"], my_id )
+        if clicked_container.data == 0 and score_data["admin_id"] == my_id:
+            clicked_container.shadow=ft.BoxShadow(spread_radius=1, blur_radius=3, color=ft.colors.BLACK54, offset=ft.Offset(0, 2),)
+            clicked_container.border=ft.border.all(2, container_button_edge_color)
         player_select_containers.insert(0, player_select_containers.pop(clicked_index))     # Rearrange containers
         # Animate positions
         for i, container in enumerate(player_select_containers):
@@ -190,7 +198,7 @@ async def main(page: ft.Page):
         global container_focus
         container_focus = clicked_container.data
 
-        my_id = retrieve_from_storage("my_id")
+        
         # Divert to add_score only if Admin is in position 0 and has been clicked in this position
         if clicked_index == 0 and clicked_container.data == 0 and score_data["admin_id"] == my_id:
             if score_data["current_hole_recorded"] == 18: score_data["current_hole_recorded"] = 17      # Override for final hole - force current_hole to be 17th rather than 18th and allow editing
@@ -447,6 +455,9 @@ async def main(page: ft.Page):
                 
             # Set initial container to highlight colour
             player_select_containers[0].bgcolor = highlight_color
+            if score_data["admin_id"] == my_id:     # Set initial player container to visually look like button for update if user is admin for round
+                player_select_containers[0].shadow=ft.BoxShadow(spread_radius=1, blur_radius=3, color=ft.colors.BLACK54, offset=ft.Offset(0, 2),)
+                player_select_containers[0].border=ft.border.all(2, container_button_edge_color)
             player_select_stack_animation = player_select_stack(player_select_containers, score_data )
             
             # Create a Row to hold the containers
