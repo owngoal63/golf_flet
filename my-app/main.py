@@ -6,7 +6,7 @@ import asyncio
 
 ### URL Prefix Setting for Production vs Test
 runmode = "TEST"
-# runmode = "PROD"
+runmode = "PROD"
 if runmode == "TEST":
     url_prefix = "http://127.0.0.1:8000"
 else:
@@ -630,7 +630,8 @@ async def main(page: ft.Page):
                     return []
                 
             group_menuitems = []
-            url = f'{url_prefix}/api/getgroups/'
+
+            url = f'{url_prefix}/api/getgroups/{my_id}/'
             groups = get_api_data(url)
             for group in groups:
                 group_menuitems.append(MenuItem(f'{group["group_name"]}', str(group["id"])))
@@ -660,7 +661,7 @@ async def main(page: ft.Page):
                                     for group_menuitem in group_menuitems[:-1]
                                 ] + [create_list_item(group_menuitems[-1], "GolfGroup")],  # Last item without divider
                                 expand=True
-                            ),
+                            ) if len(groups) > 0 else ft.Text("This profile is not the administrator for any groups.\nEither change the profile or click the + button (if available) to create a new group."),
                             border=ft.border.all(2, ft.colors.PURPLE),
                                 border_radius=10,
                                 padding=10,
